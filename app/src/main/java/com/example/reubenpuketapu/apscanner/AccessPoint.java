@@ -1,5 +1,8 @@
 package com.example.reubenpuketapu.apscanner;
 
+import java.util.ArrayList;
+import java.util.List;
+
 /**
  * Created by reubenpuketapu on 3/04/17.
  */
@@ -11,7 +14,9 @@ public class AccessPoint {
     private int y;
     private int z;
     private String desc;
-    private int strength;
+
+    public double distance;
+    public List<Integer> readings = new ArrayList<>();
 
     public AccessPoint(String bssid, int z, int x, int y, String desc) {
         this.bssid = bssid;
@@ -41,11 +46,4 @@ public class AccessPoint {
         return desc;
     }
 
-    public void setStrength(int strength){
-        this.strength = strength;
-    }
-
-    public int getStrength(){
-        return strength;
-    }
 }

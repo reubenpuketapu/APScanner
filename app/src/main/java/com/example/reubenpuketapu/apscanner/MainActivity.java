@@ -7,11 +7,19 @@ import android.content.IntentFilter;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
-import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
+
+import com.example.reubenpuketapu.apscanner.trilateration.NonLinearLeastSquaresSolver;
+import com.example.reubenpuketapu.apscanner.trilateration.TrilaterationFunction;
+
+import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
+import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
+import org.apache.commons.math3.linear.RealMatrix;
+import org.apache.commons.math3.linear.RealVector;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,9 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private List<ScanResult> scanResults;
     private Database db;
 
-    private double averageLevel;
-    private ArrayList<Double> levels = new ArrayList<>();
-
+    private List<AccessPoint> currentAPs = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -50,9 +56,6 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
 
-            levels.clear();
-            averageLevel = 0;
-
             wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
             registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
 
@@ -70,43 +73,107 @@ public class MainActivity extends AppCompatActivity {
             scanResults = wifiManager.getScanResults();
             desc.setText("");
             level.setText("");
+
+            //clear visiting APs
+
             for (ScanResult sr : scanResults) {
 
-                desc.append(sr.SSID + "\n");
-                level.append(sr.level + "\n");
-
+                if (sr.SSID.contains("victoria") && !db.getAccessPoints().containsKey(sr.BSSID) && sr.frequency < 4000) {
+                    //desc.append(sr.BSSID + "\n");
+                    //level.append(sr.level + "\n");
+                }
                 //for (AccessPoint ap : db.getAccessPoints()) {
                 //if (sr.BSSID.equals(ap.getBssid())){
                 //        desc.append(ap.getDesc() + "\n");
                 //        level.append(String.format("%.5g%n", calculateDistance(sr.level)) + "\n");
 
-                if (sr.SSID.contains("bah" ) && sr.frequency < 4000 ){
-                    calculateDistance(sr.level);
+                if (db.getAccessPoints().containsKey(sr.BSSID)) {
+                    System.out.println("HESY");
+                    AccessPoint ap = db.getAccessPoints().get(sr.BSSID);
+                    ap.readings.add(sr.level);
+                    ap.distance = calculateDistance(ap);
+
+                    desc.append(ap.getDesc() + "\n");
+                    level.append(ap.distance + "\n");
+
+                    currentAPs.add(ap);
                 }
 
-                //}
+            }
+            // need 3 APs
+            if (currentAPs.size() >=3) {
+
+                Location location = calculateLocation();
+
+                dist.setText(location.x + " " + location.y +"\n");
             }
         }
     };
 
+    private Location calculateLocation() {
+
+        double d0 = currentAPs.get(0).distance;
+        double d1 = currentAPs.get(1).distance;
+        double d2 = currentAPs.get(2).distance;
+        /*
+        double rhs0 = Math.sqrt((d0 -Math.pow(currentAPs.get(0).getX(), 2) - Math.pow(currentAPs.get(0).getY(), 2) - Math.pow(currentAPs.get(0).getZ(), 2)));
+        double rhs1 = Math.sqrt((d1 -Math.pow(currentAPs.get(1).getX(), 2) - Math.pow(currentAPs.get(1).getY(), 2) - Math.pow(currentAPs.get(1).getZ(), 2)));
+        double rhs2 = Math.sqrt((d2 -Math.pow(currentAPs.get(2).getX(), 2) - Math.pow(currentAPs.get(2).getY(), 2) - Math.pow(currentAPs.get(2).getZ(), 2)));
+
+        System.out.println("d:" + rhs0 + " " + rhs1 + " " + rhs2);
+
+        double[][] lhs = {{-1,-1,-1}, {-1,-1,-1}, {-1,-1,-1}};
+        double[] rhs = {rhs0, rhs1, rhs2};
+
+        Matrix left = new Matrix(lhs);
+        Matrix right = new Matrix(rhs, 3);
+
+        Matrix ans = left.solve(right);*/
+
+        double[][] positions = new double[][] { {currentAPs.get(0).getX(), currentAPs.get(0).getY()}, {currentAPs.get(1).getY(), currentAPs.get(1).getY()}, {currentAPs.get(2).getY(), currentAPs.get(2).getY()} };
+        double[] distances = new double[] { d0, d1, d2 };
+
+        NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
+        LeastSquaresOptimizer.Optimum optimum = solver.solve();
+
+        // the answer
+        double[] centroid = optimum.getPoint().toArray();
+
+        // error and geometry information; may throw SingularMatrixException depending the threshold argument provided
+        RealVector standardDeviation = optimum.getSigma(0);
+        RealMatrix covarianceMatrix = optimum.getCovariances(0);
+
+//        double x = (1 - Math.pow(d2, 2) + Math.pow(d0, 2) )/2;
+//        double y = (1 - Math.pow(d1, 2) + Math.pow(d0, 2) )/2;
+//        double z = 2*x + 2*y;
+
+        return new Location(centroid[0], centroid[1]);
+
+    }
+
+    private Location getXYZ(){
+
+        return null;
+
+    }
+
     // -34dbm right next to co228
 
-    private double calculateDistance(double level){
-        averageLevel = 0;
+    private double calculateDistance(AccessPoint ap){
 
-        levels.add(level);
-        for(Double d : levels){
+        int averageLevel = 0;
+
+        for(Integer d : ap.readings){
             averageLevel += d;
         }
-        averageLevel = averageLevel / levels.size();
 
-        double RSSI = averageLevel +  30;
+        averageLevel = averageLevel / ap.readings.size();
 
-        double total = Math.pow(10, (RSSI / -30));
+        double RSSI = averageLevel +  34;
+
+        double total = Math.pow(10, (RSSI / -35));
 
         //double distance = Math.pow(10, (-px - 20* ( Math.log((4*Math.PI)/0.125 )) )/40 );
-        System.out.println(total+"m");
-        dist.setText("Distance: " + total);
         return total;
     }
 }
