@@ -4,6 +4,11 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Canvas;
+import android.graphics.Color;
+import android.graphics.Paint;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
@@ -11,6 +16,7 @@ import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
 import android.view.View;
 import android.widget.Button;
+import android.widget.ImageView;
 import android.widget.TextView;
 
 import com.example.reubenpuketapu.apscanner.trilateration.NonLinearLeastSquaresSolver;
@@ -30,25 +36,42 @@ public class MainActivity extends AppCompatActivity {
     private TextView desc;
     private TextView level;
     private TextView dist;
+    private ImageView image;
+
+    private Canvas canvas;
+    private ImageView ivOverlay;
+    private ImageView ivBackground;
 
     private WifiManager wifiManager;
     private List<ScanResult> scanResults;
     private Database db;
+
+    private Bitmap bitmap;
 
     private List<AccessPoint> currentAPs = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.map_main);
         db = new Database();
 
         button = (Button) findViewById(R.id.button2);
         button.setOnClickListener(clickListener);
 
-        desc = (TextView) findViewById(R.id.descText);
-        level = (TextView) findViewById(R.id.levelText);
-        dist = (TextView) findViewById(R.id.distanceText);
+//        desc = (TextView) findViewById(R.id.descText);
+//        level = (TextView) findViewById(R.id.levelText);
+//        dist = (TextView) findViewById(R.id.distanceText);
+
+//        image = (ImageView) findViewById(R.id.image);
+
+        ivBackground = (ImageView)findViewById(R.id.iv_background);
+        ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
+
+        ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+
+        Bitmap bmp = BitmapFactory.decodeFile("~");
+
 
     }
 
@@ -56,11 +79,19 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
 
-            wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-            registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+//            wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+//            registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+//
+//            wifiManager.startScan();
 
-            wifiManager.startScan();
+            bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
+            canvas = new Canvas(bitmap);
 
+            Paint paint = new Paint();
+            paint.setColor(Color.RED);
+            canvas.drawCircle(200, 200, 15, paint);
+
+            ivOverlay.setImageBitmap(bitmap);
         }
     };
 
@@ -106,6 +137,10 @@ public class MainActivity extends AppCompatActivity {
                 Location location = calculateLocation();
 
                 dist.setText(location.x + " " + location.y +"\n");
+
+                //draw the location
+
+
             }
         }
     };
