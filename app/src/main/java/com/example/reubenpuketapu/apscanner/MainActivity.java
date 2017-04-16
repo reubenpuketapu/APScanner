@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
@@ -26,9 +25,11 @@ import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
+import org.apache.commons.math3.random.RandomAdaptor;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -56,21 +57,15 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.map_main);
         db = new Database();
 
-        button = (Button) findViewById(R.id.button2);
+        button = (Button) findViewById(R.id.button);
         button.setOnClickListener(clickListener);
-
-//        desc = (TextView) findViewById(R.id.descText);
-//        level = (TextView) findViewById(R.id.levelText);
-//        dist = (TextView) findViewById(R.id.distanceText);
-
-//        image = (ImageView) findViewById(R.id.image);
 
         ivBackground = (ImageView)findViewById(R.id.iv_background);
         ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
 
         ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
 
-        Bitmap bmp = BitmapFactory.decodeFile("");
+        //Bitmap bmp = BitmapFactory.decodeFile(R.drawable.);
 
 
     }
@@ -79,21 +74,48 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
 
-//            wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-//            registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-//
-//            wifiManager.startScan();
+           // wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+           // registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+           // wifiManager.startScan();
 
-            bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
-            canvas = new Canvas(bitmap);
+            int count = 1;
+            if (count == 1) {
+                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
+                count++;
+            }
+            else if (count == 2){
+                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+                count++;
+            }
+            else if (count == 3){
+                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
+                count++;
+            }
+            else if (count == 4){
+                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
+                count++;
+            }
+            else {
+                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.five, null));
+                count = 1;
+            }
 
-            Paint paint = new Paint();
-            paint.setColor(Color.RED);
-            canvas.drawCircle(200, 200, 15, paint);
 
-            ivOverlay.setImageBitmap(bitmap);
         }
     };
+
+    private void drawLocation(int x, int y){
+
+        bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
+        canvas = new Canvas(bitmap);
+
+        Paint paint = new Paint();
+        paint.setColor(Color.RED);
+        canvas.drawCircle(x, y, 15, paint);
+
+        ivOverlay.setImageBitmap(bitmap);
+
+    }
 
     private BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
         @Override
@@ -113,10 +135,6 @@ public class MainActivity extends AppCompatActivity {
                     //desc.append(sr.BSSID + "\n");
                     //level.append(sr.level + "\n");
                 }
-                //for (AccessPoint ap : db.getAccessPoints()) {
-                //if (sr.BSSID.equals(ap.getBssid())){
-                //        desc.append(ap.getDesc() + "\n");
-                //        level.append(String.format("%.5g%n", calculateDistance(sr.level)) + "\n");
 
                 if (db.getAccessPoints().containsKey(sr.BSSID)) {
                     System.out.println("HESY");
@@ -139,9 +157,12 @@ public class MainActivity extends AppCompatActivity {
                 dist.setText(location.x + " " + location.y +"\n");
 
                 //draw the location
-
+                //drawLocation((int)location.x, (int)location.y);
 
             }
+
+            drawLocation(200, 200);
+
         }
     };
 
@@ -182,13 +203,8 @@ public class MainActivity extends AppCompatActivity {
 //        double y = (1 - Math.pow(d1, 2) + Math.pow(d0, 2) )/2;
 //        double z = 2*x + 2*y;
 
-        return new Location(centroid[0], centroid[1]);
-
-    }
-
-    private Location getXYZ(){
-
-        return null;
+        //return new Location(centroid[0], centroid[1]);
+        return new Location(200,200);
 
     }
 
