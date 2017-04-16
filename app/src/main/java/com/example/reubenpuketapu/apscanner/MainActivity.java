@@ -70,7 +70,7 @@ public class MainActivity extends AppCompatActivity {
 
         ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
 
-        Bitmap bmp = BitmapFactory.decodeFile("~");
+        Bitmap bmp = BitmapFactory.decodeFile("");
 
 
     }
