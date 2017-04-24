@@ -33,6 +33,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 
+
 public class MainActivity extends AppCompatActivity {
 
     private Button button;
@@ -45,16 +46,18 @@ public class MainActivity extends AppCompatActivity {
 
     private WifiManager wifiManager;
     private SensorManager sensorManager;
+    private Sensor stepSensor;
+    private Sensor pressSensor;
+    private Sensor magnetSensor;
 
     private List<ScanResult> scanResults;
     private Database db;
 
-    private Sensor pressSensor;
-    private Sensor accelSensor;
-
     private Bitmap bitmap;
 
     private List<AccessPoint> currentAPs = new ArrayList<>();
+
+    private float[] orientation = new float[3];
 
 
     @Override
@@ -69,8 +72,6 @@ public class MainActivity extends AppCompatActivity {
 
         dist = (TextView) findViewById(R.id.distanceText);
 
-
-
         ivBackground = (ImageView)findViewById(R.id.iv_background);
         ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
         ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
@@ -78,20 +79,34 @@ public class MainActivity extends AppCompatActivity {
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
-        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);//
+        stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
         pressSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+        magnetSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 
-        sensorManager.registerListener(accelListener, accelSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(accelListener, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(pressListener, pressSensor, SensorManager.SENSOR_DELAY_NORMAL); // slow delays allgood
+        sensorManager.registerListener(magnetListener, magnetSensor, SensorManager.SENSOR_DELAY_NORMAL);
 
     }
 
-    private SensorEventListener accelListener = new SensorEventListener() {
+    private SensorEventListener magnetListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
-            dist.setText(event.values[0] + "\n " + event.values[1] + "\n " + event.values[2]);
+            orientation = event.values;
+            dist.setText(orientation[0] + " " + orientation[1] + " " + orientation[2]);
+        }
 
-            //drawLocation((int)(70*2.5), (int)(70*2.5), 0);
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
+
+    private SensorEventListener accelListener = new SensorEventListener() {
+
+        @Override
+        public void onSensorChanged(SensorEvent event) {
         }
 
         @Override
@@ -128,7 +143,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void drawLocation(int x, int y, int z){
+    public void drawLocation(int x, int y, int z){
 
         if (z == 1){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
@@ -206,6 +221,8 @@ public class MainActivity extends AppCompatActivity {
 
 
             }
+
+
             // z for omaha
             drawLocation((int)(200*1.125), (int)(200*1.125), 0);
 
