@@ -20,6 +20,7 @@ import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
+import com.example.reubenpuketapu.apscanner.orientation.CompassAssistant;
 import com.example.reubenpuketapu.apscanner.trilateration.NonLinearLeastSquaresSolver;
 import com.example.reubenpuketapu.apscanner.trilateration.TrilaterationFunction;
 
@@ -36,6 +37,12 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static int DEG_OFFSET = 7;
+    private static double STRIDE_LENGTH = 0.72625;
+
+    private int xLocation = 7;
+    private int yLocation = 7;
+
     private Button button;
     private TextView dist;
     private ImageView image;
@@ -48,7 +55,6 @@ public class MainActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor stepSensor;
     private Sensor pressSensor;
-    private Sensor magnetSensor;
 
     private List<ScanResult> scanResults;
     private Database db;
@@ -57,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
 
     private List<AccessPoint> currentAPs = new ArrayList<>();
 
-    private float[] orientation = new float[3];
+    private double orientation = 0;
 
 
     @Override
@@ -81,19 +87,52 @@ public class MainActivity extends AppCompatActivity {
 
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
         pressSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
-        magnetSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ORIENTATION);
 
-        sensorManager.registerListener(accelListener, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
-        sensorManager.registerListener(pressListener, pressSensor, SensorManager.SENSOR_DELAY_NORMAL); // slow delays allgood
-        sensorManager.registerListener(magnetListener, magnetSensor, SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager.registerListener(stepListener, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(pressureListener, pressSensor, SensorManager.SENSOR_DELAY_NORMAL); // slow delays allgood
+
+        CompassAssistant compassAssistant = new CompassAssistant(this, null);
+        compassAssistant.addListener(compassAssistantListener);
+        compassAssistant.start();
 
     }
 
-    private SensorEventListener magnetListener = new SensorEventListener() {
+    private CompassAssistant.CompassAssistantListener compassAssistantListener = new CompassAssistant.CompassAssistantListener() {
+        @Override
+        public void onNewDegreesToNorth(float degrees) {
+
+            orientation = degrees;
+            dist.setText(degrees + " ");
+        }
+
+        @Override
+        public void onNewSmoothedDegreesToNorth(float degrees) {
+        }
+
+        @Override
+        public void onCompassStopped() {
+
+        }
+
+        @Override
+        public void onCompassStarted() {
+
+        }
+    };
+
+
+    private SensorEventListener stepListener = new SensorEventListener() {
+
         @Override
         public void onSensorChanged(SensorEvent event) {
-            orientation = event.values;
-            dist.setText(orientation[0] + " " + orientation[1] + " " + orientation[2]);
+            double dx = STRIDE_LENGTH * Math.cos((orientation - DEG_OFFSET) * (Math.PI/180));
+            double dy = STRIDE_LENGTH * Math.sin((orientation - DEG_OFFSET) * (Math.PI/180));
+
+            xLocation+= dx;
+            yLocation+= dy;
+
+            drawLocation(xLocation * 10, yLocation * 10, 0);
+
         }
 
         @Override
@@ -102,20 +141,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-
-    private SensorEventListener accelListener = new SensorEventListener() {
-
-        @Override
-        public void onSensorChanged(SensorEvent event) {
-        }
-
-        @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
-    };
-
-    private SensorEventListener pressListener = new SensorEventListener() {
+    private SensorEventListener pressureListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
             // WORKS FOR HEIGHT!!!!!!!
