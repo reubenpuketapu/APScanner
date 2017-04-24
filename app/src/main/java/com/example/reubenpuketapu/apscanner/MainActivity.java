@@ -3,13 +3,13 @@ package com.example.reubenpuketapu.apscanner;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
+import android.hardware.Sensor;
+import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
-import android.net.wifi.WifiConfiguration;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
@@ -25,11 +25,11 @@ import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
 import org.apache.commons.math3.linear.RealMatrix;
 import org.apache.commons.math3.linear.RealVector;
-import org.apache.commons.math3.random.RandomAdaptor;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
-import java.util.Random;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -44,17 +44,24 @@ public class MainActivity extends AppCompatActivity {
     private ImageView ivBackground;
 
     private WifiManager wifiManager;
+    private SensorManager sensorManager;
+
     private List<ScanResult> scanResults;
     private Database db;
+
+    private Sensor gyroSensor;
+    private Sensor accelSensor;
 
     private Bitmap bitmap;
 
     private List<AccessPoint> currentAPs = new ArrayList<>();
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_main);
+
         db = new Database();
 
         button = (Button) findViewById(R.id.button);
@@ -62,10 +69,13 @@ public class MainActivity extends AppCompatActivity {
 
         ivBackground = (ImageView)findViewById(R.id.iv_background);
         ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
-
         ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
 
-        //Bitmap bmp = BitmapFactory.decodeFile(R.drawable.);
+        wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+
+        gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
+        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
 
 
     }
@@ -74,44 +84,37 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onClick(View view) {
 
-           // wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-           // registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-           // wifiManager.startScan();
+            //wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+            //registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
+            //wifiManager.startScan();
 
-            int count = 1;
-            if (count == 1) {
-                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
-                count++;
-            }
-            else if (count == 2){
-                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
-                count++;
-            }
-            else if (count == 3){
-                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
-                count++;
-            }
-            else if (count == 4){
-                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
-                count++;
-            }
-            else {
-                ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.five, null));
-                count = 1;
-            }
+            //ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
 
 
         }
     };
 
-    private void drawLocation(int x, int y){
+    private void drawLocation(int x, int y, int z){
+
+        if (z == 1){
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
+        }
+        else if (z == 3){
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
+        }
+        else if (z == 4){
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
+        }
+        else  {
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+        }
 
         bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
 
         Paint paint = new Paint();
         paint.setColor(Color.RED);
-        canvas.drawCircle(x, y, 15, paint);
+        canvas.drawCircle(x, y, 10, paint);
 
         ivOverlay.setImageBitmap(bitmap);
 
@@ -121,11 +124,10 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onReceive(Context context, Intent intent) {
             //wifiManager.setTdlsEnabledWithMacAddress();
-            WifiConfiguration wc = new WifiConfiguration();
             System.out.println(wifiManager.getConnectionInfo());
             scanResults = wifiManager.getScanResults();
-            desc.setText("");
-            level.setText("");
+//            desc.setText("");
+//            level.setText("");
 
             //clear visiting APs
 
@@ -142,10 +144,18 @@ public class MainActivity extends AppCompatActivity {
                     ap.readings.add(sr.level);
                     ap.distance = calculateDistance(ap);
 
-                    desc.append(ap.getDesc() + "\n");
-                    level.append(ap.distance + "\n");
+                    //desc.append(ap.getDesc() + "\n");
+                    //level.append(ap.distance + "\n");
 
                     currentAPs.add(ap);
+                    Collections.sort(currentAPs, new Comparator<AccessPoint>() {
+                        @Override
+                        public int compare(AccessPoint lhs, AccessPoint rhs) {
+                            if(lhs.distance > rhs.distance) return -1;
+                            else if (lhs.distance < rhs.distance) return 1;
+                            else return 0;
+                        }
+                    });
                 }
 
             }
@@ -154,14 +164,15 @@ public class MainActivity extends AppCompatActivity {
 
                 Location location = calculateLocation();
 
-                dist.setText(location.x + " " + location.y +"\n");
+                dist.setText(location.x + " " + location.y + " " + location.z + "\n");
 
                 //draw the location
-                //drawLocation((int)location.x, (int)location.y);
+                //drawLocation((int)location.x, (int)location.y, (int)location.z);
+
 
             }
 
-            drawLocation(200, 200);
+            drawLocation((int)(200*1.125), (int)(200*1.125), 1);
 
         }
     };
@@ -171,6 +182,7 @@ public class MainActivity extends AppCompatActivity {
         double d0 = currentAPs.get(0).distance;
         double d1 = currentAPs.get(1).distance;
         double d2 = currentAPs.get(2).distance;
+        double d3 = currentAPs.get(3).distance;
         /*
         double rhs0 = Math.sqrt((d0 -Math.pow(currentAPs.get(0).getX(), 2) - Math.pow(currentAPs.get(0).getY(), 2) - Math.pow(currentAPs.get(0).getZ(), 2)));
         double rhs1 = Math.sqrt((d1 -Math.pow(currentAPs.get(1).getX(), 2) - Math.pow(currentAPs.get(1).getY(), 2) - Math.pow(currentAPs.get(1).getZ(), 2)));
@@ -227,4 +239,8 @@ public class MainActivity extends AppCompatActivity {
         //double distance = Math.pow(10, (-px - 20* ( Math.log((4*Math.PI)/0.125 )) )/40 );
         return total;
     }
+
+
+
+
 }

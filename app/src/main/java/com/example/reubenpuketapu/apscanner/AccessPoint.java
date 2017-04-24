@@ -14,8 +14,8 @@ public class AccessPoint {
     private int y;
     private int z;
     private String desc;
-
     public double distance;
+
     public List<Integer> readings = new ArrayList<>();
 
     public AccessPoint(String bssid, int z, int x, int y, String desc) {
