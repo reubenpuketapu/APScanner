@@ -8,6 +8,8 @@ import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.Paint;
 import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
@@ -34,8 +36,6 @@ import java.util.List;
 public class MainActivity extends AppCompatActivity {
 
     private Button button;
-    private TextView desc;
-    private TextView level;
     private TextView dist;
     private ImageView image;
 
@@ -49,7 +49,7 @@ public class MainActivity extends AppCompatActivity {
     private List<ScanResult> scanResults;
     private Database db;
 
-    private Sensor gyroSensor;
+    private Sensor pressSensor;
     private Sensor accelSensor;
 
     private Bitmap bitmap;
@@ -64,21 +64,55 @@ public class MainActivity extends AppCompatActivity {
 
         db = new Database();
 
-        button = (Button) findViewById(R.id.button);
+        button = (Button) findViewById(R.id.scan_button);
         button.setOnClickListener(clickListener);
+
+        dist = (TextView) findViewById(R.id.distanceText);
+
+
 
         ivBackground = (ImageView)findViewById(R.id.iv_background);
         ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
-        ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+        ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
 
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
-        gyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
-        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);//
+        accelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION);//
+        pressSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
 
+        sensorManager.registerListener(accelListener, accelSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(pressListener, pressSensor, SensorManager.SENSOR_DELAY_NORMAL); // slow delays allgood
 
     }
+
+    private SensorEventListener accelListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            dist.setText(event.values[0] + "\n " + event.values[1] + "\n " + event.values[2]);
+
+            //drawLocation((int)(70*2.5), (int)(70*2.5), 0);
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
+    private SensorEventListener pressListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            // WORKS FOR HEIGHT!!!!!!!
+            //dist.setText(event.values[0]+ " \n");
+        }
+
+        @Override
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
 
     private View.OnClickListener clickListener = new View.OnClickListener() {
         @Override
@@ -106,7 +140,8 @@ public class MainActivity extends AppCompatActivity {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
         }
         else  {
-            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+            //ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
         }
 
         bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
@@ -162,7 +197,7 @@ public class MainActivity extends AppCompatActivity {
             // need 3 APs
             if (currentAPs.size() >=3) {
 
-                Location location = calculateLocation();
+                Location location = calculateWifiLocation();
 
                 dist.setText(location.x + " " + location.y + " " + location.z + "\n");
 
@@ -171,13 +206,13 @@ public class MainActivity extends AppCompatActivity {
 
 
             }
-
-            drawLocation((int)(200*1.125), (int)(200*1.125), 1);
+            // z for omaha
+            drawLocation((int)(200*1.125), (int)(200*1.125), 0);
 
         }
     };
 
-    private Location calculateLocation() {
+    private Location calculateWifiLocation() {
 
         double d0 = currentAPs.get(0).distance;
         double d1 = currentAPs.get(1).distance;
