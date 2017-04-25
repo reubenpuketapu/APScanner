@@ -15,12 +15,12 @@ import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
 import android.support.v7.app.AppCompatActivity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import com.example.reubenpuketapu.apscanner.orientation.CompassAssistant;
 import com.example.reubenpuketapu.apscanner.trilateration.NonLinearLeastSquaresSolver;
 import com.example.reubenpuketapu.apscanner.trilateration.TrilaterationFunction;
 
@@ -37,11 +37,11 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static int DEG_OFFSET = 7;
+    private static double DEG_OFFSET = 8;
     private static double STRIDE_LENGTH = 0.72625;
 
-    private int xLocation = 7;
-    private int yLocation = 7;
+    private double xLocation = 30;
+    private double yLocation = 22;
 
     private Button button;
     private TextView dist;
@@ -55,6 +55,8 @@ public class MainActivity extends AppCompatActivity {
     private SensorManager sensorManager;
     private Sensor stepSensor;
     private Sensor pressSensor;
+    private Sensor gravSensor;
+    private Sensor magSensor;
 
     private List<ScanResult> scanResults;
     private Database db;
@@ -63,16 +65,20 @@ public class MainActivity extends AppCompatActivity {
 
     private List<AccessPoint> currentAPs = new ArrayList<>();
 
-    private double orientation = 0;
+    private float[] orientation = new float[3];
+    private float[] r = new float[9];
+    private float[] gravity = new float[3];
+    private float[] geomagnetic = new float[3];
 
+    private double dx;
+    private double dy;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_main);
 
-        db = new Database();
-
+        // UI STUFF
         button = (Button) findViewById(R.id.scan_button);
         button.setOnClickListener(clickListener);
 
@@ -80,42 +86,76 @@ public class MainActivity extends AppCompatActivity {
 
         ivBackground = (ImageView)findViewById(R.id.iv_background);
         ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
-        ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
+        ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
+        ivBackground.setOnTouchListener(imageListener);
 
+        // WIFI STUFF
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+        db = new Database();
 
+
+        // SENSOR STUFF
+        sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
         stepSensor = sensorManager.getDefaultSensor(Sensor.TYPE_STEP_DETECTOR);
         pressSensor = sensorManager.getDefaultSensor(Sensor.TYPE_PRESSURE);
-
+        magSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        gravSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GRAVITY);
         sensorManager.registerListener(stepListener, stepSensor, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(pressureListener, pressSensor, SensorManager.SENSOR_DELAY_NORMAL); // slow delays allgood
-
-        CompassAssistant compassAssistant = new CompassAssistant(this, null);
-        compassAssistant.addListener(compassAssistantListener);
-        compassAssistant.start();
+        sensorManager.registerListener(gravListener, gravSensor, SensorManager.SENSOR_DELAY_FASTEST);
+        sensorManager.registerListener(magListener, magSensor, SensorManager.SENSOR_DELAY_FASTEST);
 
     }
 
-    private CompassAssistant.CompassAssistantListener compassAssistantListener = new CompassAssistant.CompassAssistantListener() {
+    private SensorEventListener gravListener = new SensorEventListener() {
         @Override
-        public void onNewDegreesToNorth(float degrees) {
-
-            orientation = degrees;
-            dist.setText(degrees + " ");
+        public void onSensorChanged(SensorEvent event) {
+            gravity[0] = event.values[0];
+            gravity[1] = event.values[1];
+            gravity[2] = event.values[2];
         }
 
         @Override
-        public void onNewSmoothedDegreesToNorth(float degrees) {
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+
+        }
+    };
+
+    private SensorEventListener magListener = new SensorEventListener() {
+        @Override
+        public void onSensorChanged(SensorEvent event) {
+            geomagnetic[0] = event.values[0];
+            geomagnetic[1] = event.values[1];
+            geomagnetic[2] = event.values[2];
+
+            float[] temp = new float[3];
+
+            sensorManager.getRotationMatrix(r, null, gravity, geomagnetic);
+            sensorManager.getOrientation(r, temp);
+
+            float azimuthInRadians = temp[0];
+            float azimuthInDegrees = (float)Math.toDegrees(azimuthInRadians);
+            if (azimuthInDegrees < 0.0f) {
+                azimuthInDegrees += 360.0f;
+            }
+            azimuthInDegrees += DEG_OFFSET;
+            orientation[0] = (float)Math.toRadians(azimuthInDegrees);
+
+            dx = STRIDE_LENGTH * Math.sin((orientation[0]));
+            dy = STRIDE_LENGTH * Math.cos((orientation[0]));
+
+            //dist.setText(dx + " " + dy + "\n" + orientation[0]);
+
+            //dist.setText("xlocation: "  + xLocation + " + dx: " + dx + " ylocation: " + yLocation + " + dy: " + (-dy));
+            double newx = xLocation + dx;
+            double newy = yLocation - dy;
+
+            //extra.setText("xlocation: "  + newx   + "         text" + " ylocation: " + newy);
+
         }
 
         @Override
-        public void onCompassStopped() {
-
-        }
-
-        @Override
-        public void onCompassStarted() {
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
 
         }
     };
@@ -125,13 +165,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSensorChanged(SensorEvent event) {
-            double dx = STRIDE_LENGTH * Math.cos((orientation - DEG_OFFSET) * (Math.PI/180));
-            double dy = STRIDE_LENGTH * Math.sin((orientation - DEG_OFFSET) * (Math.PI/180));
-
             xLocation+= dx;
-            yLocation+= dy;
+            yLocation-= dy;
 
-            drawLocation(xLocation * 10, yLocation * 10, 0);
+            drawLocation(xLocation * 10, yLocation * 10, 1);
 
         }
 
@@ -146,6 +183,7 @@ public class MainActivity extends AppCompatActivity {
         public void onSensorChanged(SensorEvent event) {
             // WORKS FOR HEIGHT!!!!!!!
             //dist.setText(event.values[0]+ " \n");
+
         }
 
         @Override
@@ -169,7 +207,31 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    public void drawLocation(int x, int y, int z){
+    private View.OnTouchListener imageListener = new View.OnTouchListener() {
+        @Override
+        public boolean onTouch(View v, MotionEvent event) {
+
+            int x = (int)event.getX();
+            int y = (int)event.getY();
+
+
+            int[] xy = new int[2];
+            v.getLocationOnScreen(xy);
+
+            xLocation = (x - xy[0])/10;
+            yLocation = y/10 ;//+ xy[1];
+
+            //dist.setText(imageX + " " + imageY);
+
+            drawLocation(xLocation*10, yLocation*10, 1);
+
+
+
+            return false;
+        }
+    };
+
+    public void drawLocation(double x, double y, double z){
 
         if (z == 1){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
@@ -182,7 +244,7 @@ public class MainActivity extends AppCompatActivity {
         }
         else  {
             //ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
-            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
         }
 
         bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
@@ -190,7 +252,7 @@ public class MainActivity extends AppCompatActivity {
 
         Paint paint = new Paint();
         paint.setColor(Color.RED);
-        canvas.drawCircle(x, y, 10, paint);
+        canvas.drawCircle((int)x, (int)y, 10, paint);
 
         ivOverlay.setImageBitmap(bitmap);
 
