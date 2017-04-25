@@ -3,6 +3,7 @@ package com.example.reubenpuketapu.apscanner;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -37,22 +38,18 @@ import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
 
-    private static double DEG_OFFSET = 8;
-    private static double STRIDE_LENGTH = 0.72625;
-
-    private double xLocation = 30;
-    private double yLocation = 22;
 
     private Button button;
     private TextView dist;
-    private ImageView image;
 
     private Canvas canvas;
     private ImageView ivOverlay;
     private ImageView ivBackground;
+    private Bitmap bitmap;
 
     private WifiManager wifiManager;
     private SensorManager sensorManager;
+
     private Sensor stepSensor;
     private Sensor pressSensor;
     private Sensor gravSensor;
@@ -61,17 +58,24 @@ public class MainActivity extends AppCompatActivity {
     private List<ScanResult> scanResults;
     private Database db;
 
-    private Bitmap bitmap;
-
     private List<AccessPoint> currentAPs = new ArrayList<>();
+
+    private static double DEG_OFFSET = 8;
+    private static double STRIDE_LENGTH = 0.72625;
 
     private float[] orientation = new float[3];
     private float[] r = new float[9];
     private float[] gravity = new float[3];
     private float[] geomagnetic = new float[3];
 
+    private double xLocation = 30;
+    private double yLocation = 22;
+
     private double dx;
     private double dy;
+    private double z;
+
+    private double oldz = -1;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -91,6 +95,7 @@ public class MainActivity extends AppCompatActivity {
 
         // WIFI STUFF
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
+        registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
         db = new Database();
 
 
@@ -107,6 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    // SENSOR EVENTS
+
     private SensorEventListener gravListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
@@ -116,9 +123,7 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
     private SensorEventListener magListener = new SensorEventListener() {
@@ -144,20 +149,10 @@ public class MainActivity extends AppCompatActivity {
             dx = STRIDE_LENGTH * Math.sin((orientation[0]));
             dy = STRIDE_LENGTH * Math.cos((orientation[0]));
 
-            //dist.setText(dx + " " + dy + "\n" + orientation[0]);
-
-            //dist.setText("xlocation: "  + xLocation + " + dx: " + dx + " ylocation: " + yLocation + " + dy: " + (-dy));
-            double newx = xLocation + dx;
-            double newy = yLocation - dy;
-
-            //extra.setText("xlocation: "  + newx   + "         text" + " ylocation: " + newy);
-
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
+        public void onAccuracyChanged(Sensor sensor, int accuracy){}
     };
 
 
@@ -173,14 +168,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {
-
-        }
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
     };
 
     private SensorEventListener pressureListener = new SensorEventListener() {
         @Override
         public void onSensorChanged(SensorEvent event) {
+
+            // TODO: need to calculate the values for each level and map them to each
+            // TODO: set to z!
+
             // WORKS FOR HEIGHT!!!!!!!
             //dist.setText(event.values[0]+ " \n");
 
@@ -192,20 +189,7 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-
-    private View.OnClickListener clickListener = new View.OnClickListener() {
-        @Override
-        public void onClick(View view) {
-
-            //wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
-            //registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-            //wifiManager.startScan();
-
-            //ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
-
-
-        }
-    };
+    // UI EVENTS
 
     private View.OnTouchListener imageListener = new View.OnTouchListener() {
         @Override
@@ -214,26 +198,26 @@ public class MainActivity extends AppCompatActivity {
             int x = (int)event.getX();
             int y = (int)event.getY();
 
-
             int[] xy = new int[2];
             v.getLocationOnScreen(xy);
 
             xLocation = (x - xy[0])/10;
             yLocation = y/10 ;//+ xy[1];
 
-            //dist.setText(imageX + " " + imageY);
-
             drawLocation(xLocation*10, yLocation*10, 1);
-
-
 
             return false;
         }
     };
 
     public void drawLocation(double x, double y, double z){
-
-        if (z == 1){
+        if (z == oldz){
+            // Don't change the background because it is the same as last iteration
+        }
+        else if (z == 0){
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
+        }
+        else if (z == 1){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
         }
         else if (z == 3){
@@ -243,12 +227,12 @@ public class MainActivity extends AppCompatActivity {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
         }
         else  {
-            //ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
         }
-
+        // Don't need to change canvas
         bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
+
 
         Paint paint = new Paint();
         paint.setColor(Color.RED);
@@ -256,18 +240,29 @@ public class MainActivity extends AppCompatActivity {
 
         ivOverlay.setImageBitmap(bitmap);
 
+        oldz = z;
+
     }
+
+    // WIFI EVENTS
+
+    private View.OnClickListener clickListener = new View.OnClickListener() {
+        @Override
+        public void onClick(View view) {
+            wifiManager.startScan();
+        }
+    };
 
     private BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
             //wifiManager.setTdlsEnabledWithMacAddress();
-            System.out.println(wifiManager.getConnectionInfo());
+
             scanResults = wifiManager.getScanResults();
-//            desc.setText("");
-//            level.setText("");
 
             //clear visiting APs
+
+            System.out.println("HELLO");
 
             for (ScanResult sr : scanResults) {
 
@@ -276,8 +271,7 @@ public class MainActivity extends AppCompatActivity {
                     //level.append(sr.level + "\n");
                 }
 
-                if (db.getAccessPoints().containsKey(sr.BSSID)) {
-                    System.out.println("HESY");
+                /*if (db.getAccessPoints().containsKey(sr.BSSID)) {
                     AccessPoint ap = db.getAccessPoints().get(sr.BSSID);
                     ap.readings.add(sr.level);
                     ap.distance = calculateDistance(ap);
@@ -294,9 +288,12 @@ public class MainActivity extends AppCompatActivity {
                             else return 0;
                         }
                     });
-                }
+                }*/
+
+                System.out.println(sr.SSID + " " + convertRssiToM(sr.level));
 
             }
+
             // need 3 APs
             if (currentAPs.size() >=3) {
 
@@ -306,7 +303,6 @@ public class MainActivity extends AppCompatActivity {
 
                 //draw the location
                 //drawLocation((int)location.x, (int)location.y, (int)location.z);
-
 
             }
 
@@ -318,6 +314,8 @@ public class MainActivity extends AppCompatActivity {
     };
 
     private Location calculateWifiLocation() {
+
+        // Uses the three / 4 closest Access Points
 
         double d0 = currentAPs.get(0).distance;
         double d1 = currentAPs.get(1).distance;
@@ -338,7 +336,7 @@ public class MainActivity extends AppCompatActivity {
 
         Matrix ans = left.solve(right);*/
 
-        double[][] positions = new double[][] { {currentAPs.get(0).getX(), currentAPs.get(0).getY()}, {currentAPs.get(1).getY(), currentAPs.get(1).getY()}, {currentAPs.get(2).getY(), currentAPs.get(2).getY()} };
+        double[][] positions = new double[][] { {currentAPs.get(0).getX(), currentAPs.get(0).getY()}, {currentAPs.get(1).getX(), currentAPs.get(1).getY()}, {currentAPs.get(2).getX(), currentAPs.get(2).getY()} };
         double[] distances = new double[] { d0, d1, d2 };
 
         NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
@@ -372,15 +370,14 @@ public class MainActivity extends AppCompatActivity {
 
         averageLevel = averageLevel / ap.readings.size();
 
-        double RSSI = averageLevel +  34;
-
-        double total = Math.pow(10, (RSSI / -35));
-
         //double distance = Math.pow(10, (-px - 20* ( Math.log((4*Math.PI)/0.125 )) )/40 );
-        return total;
+        return convertRssiToM(averageLevel);
     }
 
+    private double convertRssiToM(double RSSI){
 
+        return Math.pow(10, ((RSSI+34) / -35));
 
+    }
 
 }
