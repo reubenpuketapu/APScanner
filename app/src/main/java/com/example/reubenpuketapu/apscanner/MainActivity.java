@@ -34,6 +34,8 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Timer;
+import java.util.TimerTask;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -62,18 +64,22 @@ public class MainActivity extends AppCompatActivity {
 
     private static double DEG_OFFSET = 8;
     private static double STRIDE_LENGTH = 0.72625;
+    private static double DRAW_RATIO = 117.5;
 
     private float[] orientation = new float[3];
     private float[] r = new float[9];
     private float[] gravity = new float[3];
     private float[] geomagnetic = new float[3];
 
+    // x y location in metres
     private double xLocation = 30;
     private double yLocation = 22;
 
+    // dx dy in metres
     private double dx;
     private double dy;
-    private double z;
+
+    private double floor;
 
     private double oldz = -1;
 
@@ -163,7 +169,7 @@ public class MainActivity extends AppCompatActivity {
             xLocation+= dx;
             yLocation-= dy;
 
-            drawLocation(xLocation * 10, yLocation * 10, 1);
+            //drawLocation(xLocation * 10, yLocation * 10, 1);
 
         }
 
@@ -201,29 +207,28 @@ public class MainActivity extends AppCompatActivity {
             int[] xy = new int[2];
             v.getLocationOnScreen(xy);
 
-            xLocation = (x - xy[0])/10;
-            yLocation = y/10 ;//+ xy[1];
+            // off set the ratio
+            xLocation = (x - xy[0])/DRAW_RATIO;
+            yLocation = y/DRAW_RATIO ;
 
-            drawLocation(xLocation*10, yLocation*10, 1);
+            //drawLocation(xLocation, yLocation, 1);
 
             return false;
         }
     };
 
-    public void drawLocation(double x, double y, double z){
-        if (z == oldz){
-            // Don't change the background because it is the same as last iteration
-        }
-        else if (z == 0){
+    public void drawLocation(double x, double y, double floor){
+
+        if (floor == 0){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
         }
-        else if (z == 1){
+        else if (floor == 1){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
         }
-        else if (z == 3){
+        else if (floor == 3){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
         }
-        else if (z == 4){
+        else if (floor == 4){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
         }
         else  {
@@ -236,11 +241,13 @@ public class MainActivity extends AppCompatActivity {
 
         Paint paint = new Paint();
         paint.setColor(Color.RED);
-        canvas.drawCircle((int)x, (int)y, 10, paint);
+
+        // draw the circle with 117.5 scale ratio
+        canvas.drawCircle((int)(x*DRAW_RATIO), (int)(y*DRAW_RATIO), 10, paint);
 
         ivOverlay.setImageBitmap(bitmap);
 
-        oldz = z;
+        //oldz = z;
 
     }
 
@@ -271,14 +278,12 @@ public class MainActivity extends AppCompatActivity {
                     //level.append(sr.level + "\n");
                 }
 
-                /*if (db.getAccessPoints().containsKey(sr.BSSID)) {
+                /* (db.getAccessPoints().containsKey(sr.BSSID)) {
                     AccessPoint ap = db.getAccessPoints().get(sr.BSSID);
                     ap.readings.add(sr.level);
                     ap.distance = calculateDistance(ap);
 
-                    //desc.append(ap.getDesc() + "\n");
-                    //level.append(ap.distance + "\n");
-
+                    // sort by the *closest* access points, based on their distance
                     currentAPs.add(ap);
                     Collections.sort(currentAPs, new Comparator<AccessPoint>() {
                         @Override
@@ -288,7 +293,7 @@ public class MainActivity extends AppCompatActivity {
                             else return 0;
                         }
                     });
-                }*/
+                 }*/
 
                 System.out.println(sr.SSID + " " + convertRssiToM(sr.level));
 
@@ -308,7 +313,9 @@ public class MainActivity extends AppCompatActivity {
 
 
             // z for omaha
-            drawLocation((int)(200*1.125), (int)(200*1.125), 0);
+            //drawLocation(4, 4, 1);
+
+            //wifiManager.startScan();
 
         }
     };
@@ -362,15 +369,18 @@ public class MainActivity extends AppCompatActivity {
 
     private double calculateDistance(AccessPoint ap){
 
-        int averageLevel = 0;
+        // get the 3 most recent values if there are more than three
 
-        for(Integer d : ap.readings){
-            averageLevel += d;
+        int averageLevel = 0;
+        int count = 3;
+        for(int i = ap.readings.size()-1; i > 0; i--){
+            if (count == 0) break;
+            averageLevel += ap.readings.get(i);
+            count--;
         }
 
         averageLevel = averageLevel / ap.readings.size();
 
-        //double distance = Math.pow(10, (-px - 20* ( Math.log((4*Math.PI)/0.125 )) )/40 );
         return convertRssiToM(averageLevel);
     }
 
@@ -380,4 +390,26 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    private int calculateWifiZ(){
+
+        int[] floorCount = {0,0,0,0};
+
+        // get the closest three APs
+        for(int i = 0; i < currentAPs.size() && i < 3; i++){
+            floorCount[currentAPs.get(i).getZ()]++;
+        }
+
+        int maxFloor = 0;
+
+        for (int i = 0; i < floorCount.length; i++){
+            if(floorCount[i] > maxFloor){
+                maxFloor = floorCount[i];
+            }
+        }
+
+        return maxFloor+1;
+
+    }
+
 }
+

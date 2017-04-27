@@ -24,6 +24,7 @@ public class Database {
         accessPoints.put("08:17:35:9d:26:90",new AccessPoint("08:17:35:9d:26:90", 2, 60, 31,"Outside CO216"));
         accessPoints.put("08:17:35:9d:30:20",new AccessPoint("08:17:35:9d:30:20", 2, 47, 9,"Outside CO228"));
         accessPoints.put("08:17:35:9d:27:00",new AccessPoint("08:17:35:9d:27:00", 2, 87, 10, "Outside CO201"));
+
         accessPoints.put("08:17:35:9d:2a:c0",new AccessPoint("08:17:35:9d:2a:c0", 1, 37, -8,"Wishbone"));
         accessPoints.put("08:17:35:82:6e:40",new AccessPoint("08:17:35:82:6e:40", 1, 22, 41,"Outside Fuji Xerox"));
         accessPoints.put("c8:f9:f9:be:0d:20",new AccessPoint("c8:f9:f9:be:0d:20", 1, 69, 41,"Outside Tardis"));
@@ -32,6 +33,7 @@ public class Database {
         accessPoints.put("08:17:35:9c:dd:50",new AccessPoint("08:17:35:9c:dd:50", 1, 8, 7,"Outside CO148"));
         accessPoints.put("08:17:35:9c:e9:a0",new AccessPoint("08:17:35:9c:e9:a0", 1, 50, 5,"Outside CO126"));
         accessPoints.put("08:17:35:9c:e1:c0",new AccessPoint("08:17:35:9c:e1:c0", 1, 79, 10,"Outside CO105"));
+
         accessPoints.put("00:1e:4a:55:73:20",new AccessPoint("00:1e:4a:55:73:20", 4, 11, 10,"Outside CO435"));
         accessPoints.put("08:17:35:82:72:60",new AccessPoint("08:17:35:82:72:60", 4, 28, 12,"Outside CO427"));
         accessPoints.put("00:1e:7a:28:0a:30",new AccessPoint("00:1e:7a:28:0a:30", 4, 51, 10,"Outside CO419"));
