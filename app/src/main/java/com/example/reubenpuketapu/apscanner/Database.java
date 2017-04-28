@@ -41,29 +41,33 @@ public class Database {
         accessPoints.add(new AccessPoint(createSet("64:e9:50:b8:41:40","64:e9:50:b8:41:4d","64:e9:50:b8:41:4f"), 2, 35, 18,"Inside CO219"));
         accessPoints.add(new AccessPoint(createSet("08:17:35:9d:27:02"), 2, 62.2, 36.9, "Outside CO201"));
 
-        //accessPoints.put(new AccessPoint("08:17:35:9c:8a:70", 2, 21, 36,"Outside CO250"));
+        accessPoints.add(new AccessPoint(createSet("08:17:35:9d:24:40","08:17:35:9d:24:4d","08:17:35:9d:24:4f"), 3, 25.3, 36.2,"Outside CO358"));
+        accessPoints.add(new AccessPoint(createSet("2c:3f:38:30:6a:10","2c:3f:38:30:6a:1d","2c:3f:38:30:6a:1f","2c:3f:38:30:6a:12"), 3, 24.5, 21.4,"Outside CO347"));
+        accessPoints.add(new AccessPoint(createSet("2c:3f:38:2a:d9:60","2c:3f:38:2a:d9:62"), 3, 31, 14.5,"Outside CO347"));
+        accessPoints.add(new AccessPoint(createSet("08:17:35:9d:26:20","08:17:35:9d:26:2d","08:17:35:9d:26:2f"), 3, 39.4, 20.4,"Outside C0330"));
+        accessPoints.add(new AccessPoint(createSet("54:78:1a:43:98:50","54:78:1a:43:98:5d","54:78:1a:43:98:5f"), 3, 39, 35.6,"Outside CO322"));
+        accessPoints.add(new AccessPoint(createSet("70:10:5c:f5:25:10","70:10:5c:f5:25:1d","70:10:5c:f5:25:1f", "70:10:5c:f5:25:12"), 3, 46, 37.1,"Outside CO318"));
+        accessPoints.add(new AccessPoint(createSet("e8:65:49:10:00:d0","e8:65:49:10:00:dd","e8:65:49:10:00:df", "e8:65:49:10:00:d2"), 3, 56.5, 33.5,"Outside CO313"));
+        accessPoints.add(new AccessPoint(createSet("08:17:35:9d:34:b0","08:17:35:9d:34:b2"), 3, 66.1, 33.4,"Outside CO304"));
 
+        accessPoints.add(new AccessPoint(createSet("54:78:1a:43:95:50","54:78:1a:43:95:5d","54:78:1a:43:95:5f"), 4, 7.7, 8.2,"Outside CO425"));
+        accessPoints.add(new AccessPoint(createSet("08:17:35:82:72:60","08:17:35:82:72:6d","08:17:35:82:72:6f"), 4, 19.6, 6.7,"Outside CO427"));
+        accessPoints.add(new AccessPoint(createSet("50:06:04:c3:a5:a0","50:06:04:c3:a5:ad","50:06:04:c3:a5:af"), 4, 29, 11.5,"Outside CO418"));
+        accessPoints.add(new AccessPoint(createSet("2c:3f:38:2a:67:00","2c:3f:38:2a:67:0d","2c:3f:38:2a:67:0f"), 4, 41.8, 11.5,"Outside CO408"));
 
-        accessPoints.put(new AccessPoint("2c:3f:38:2a:d9:60", 3, 29, 40,"Outside CO338"));
-        accessPoints.put(new AccessPoint("00:1e:7a:27:f2:60", 3, 11, 28,"Outside CO353"));
-        accessPoints.put(new AccessPoint("08:17:35:9d:26:20", 3, 29, 27,"Outside CO329"));
-        accessPoints.put(new AccessPoint("00:23:33:20:eb:20", 3, 31, 9,"Inside CO322"));
-        accessPoints.put(new AccessPoint("08:17:35:9d:34:b0", 3, 75, 11,"Outside CO304"));
+        accessPoints.add(new AccessPoint(createSet("08:17:35:62:cc:a0","08:17:35:62:cc:ad","08:17:35:62:cc:af"), 5, 16.5, 4.4,"Outside CO564"));
+        accessPoints.add(new AccessPoint(createSet("e8:65:49:33:04:60","e8:65:49:33:04:6d","e8:65:49:33:04:6f"), 5, 28.6, 7.3,"Outside CO532"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:c6:a2:c0","f4:cf:e2:c6:a2:cd","f4:cf:e2:c6:a2:cf"), 5, 40.3, 7.2,"Outside CO530"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b2:b9:00","f4:cf:e2:b2:b9:0d","f4:cf:e2:b2:b9:0f"), 5, 42.3, 3.7,"Inside CO501"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:be:7b:80","f4:cf:e2:be:7b:8d","f4:cf:e2:be:7b:8f"), 5, 53.3, 4.3,"Outside CO504"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:ae:92:50","f4:cf:e2:ae:92:5d","f4:cf:e2:ae:92:5f"), 5, 57, 7.2,"Outside CO525"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b4:dd:f0","f4:cf:e2:b4:dd:fd","f4:cf:e2:b4:dd:ff"), 5, 63.3, 4.3,"Outside CO506"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b3:08:70","f4:cf:e2:b3:08:7d","f4:cf:e2:b3:08:7f"), 5, 65.2, 72,"Outside CO524"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:be:78:f0","f4:cf:e2:be:78:fd","f4:cf:e2:be:78:ff"), 5, 69.5, 7.2,"Outside CO522"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b4:dc:c0","f4:cf:e2:b4:dc:cd","f4:cf:e2:b4:dc:cf"), 5, 74.9, 4.4,"Outside CO510"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b3:a8:10","f4:cf:e2:b3:a8:1d","f4:cf:e2:b3:a8:1f"), 5, 82.8, 7.2,"Outside CO519"));
+        accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b3:08:80","f4:cf:e2:b3:08:8d","f4:cf:e2:b3:08:8f"), 5, 83.1, 4.4,"Outside CO513"));
 
-/*
-
-
-
-        accessPoints.put("00:1e:4a:55:73:20",new AccessPoint("00:1e:4a:55:73:20", 4, 11, 10,"Outside CO435"));
-        accessPoints.put("08:17:35:82:72:60",new AccessPoint("08:17:35:82:72:60", 4, 28, 12,"Outside CO427"));
-        accessPoints.put("00:1e:7a:28:0a:30",new AccessPoint("00:1e:7a:28:0a:30", 4, 51, 10,"Outside CO419"));
-        accessPoints.put("00:23:04:5c:9b:70",new AccessPoint("00:23:04:5c:9b:70", 4, 74, 7,"Outside CO406"));
-        accessPoints.put("00:23:04:5c:b1:90",new AccessPoint("00:23:04:5c:b1:90", 5, 11, 10,"Outside CO533"));
-        accessPoints.put("00:23:33:20:f2:a0",new AccessPoint("00:23:33:20:f2:a0", 5, 34, 7,"Outside CO525"));
-        accessPoints.put("00:3a:98:04:af:90",new AccessPoint("00:3a:98:04:af:90", 5, 48, 7,"Outside CO519"));
-        accessPoints.put("08:17:35:9c:f7:50",new AccessPoint("08:17:35:9c:f7:50", 5, 57, 7,"Outside CO515"));
-        accessPoints.put("00:23:33:20:fd:40",new AccessPoint("00:23:33:20:fd:40", 5, 73, 10,"Inside CO508"));
-        */
     }
 
     public List<AccessPoint> getAccessPoints(){
