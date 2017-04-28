@@ -1,7 +1,9 @@
 package com.example.reubenpuketapu.apscanner;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Created by reubenpuketapu on 3/04/17.
@@ -9,32 +11,29 @@ import java.util.List;
 
 public class AccessPoint {
 
-    private String bssid;
-    private int x;
-    private int y;
+    private double x;
+    private double y;
     private int z;
     private String desc;
-    public double distance;
+    public double averageDistance;
 
-    public List<Integer> readings = new ArrayList<>();
+    public List<BSSID> bssids;
 
-    public AccessPoint(String bssid, int z, int x, int y, String desc) {
-        this.bssid = bssid;
+    public int timeout = 0;
+
+    public AccessPoint(List<BSSID> bssids, int z, double x, double y, String desc) {
+        this.bssids = bssids;
         this.x = x;
         this.y = y;
         this.z = z;
         this.desc = desc;
     }
 
-    public String getBssid() {
-        return bssid;
-    }
-
-    public int getX() {
+    public double getX() {
         return x;
     }
 
-    public int getY() {
+    public double getY() {
         return y;
     }
 
