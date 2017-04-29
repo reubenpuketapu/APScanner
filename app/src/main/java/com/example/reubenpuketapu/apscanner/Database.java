@@ -14,8 +14,8 @@ import java.util.StringTokenizer;
 
 public class Database {
 
-    private List<AccessPoint> accessPoints = new ArrayList<>();
-    private Set<String> allBSSIDS = new HashSet<>();
+    private final List<AccessPoint> accessPoints = new ArrayList<>();
+    private final Set<String> allBSSIDS = new HashSet<>();
 
     public Database(){
 
@@ -81,10 +81,6 @@ public class Database {
             for (BSSID bssid : ap.bssids.values())
                 allBSSIDS.add(bssid.getBssid());
         }
-    }
-
-    public List<AccessPoint> getAccessPoints(){
-        return accessPoints;
     }
 
     private Map<String, BSSID> createSet(String... elements){

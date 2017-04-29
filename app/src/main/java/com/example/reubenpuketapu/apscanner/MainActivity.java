@@ -15,6 +15,7 @@ import android.hardware.SensorManager;
 import android.net.wifi.ScanResult;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.v7.app.AppCompatActivity;
 import android.view.MotionEvent;
 import android.view.View;
@@ -68,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
     private TreeSet<AccessPoint> currentAPs;
     private Set<String> currentBSSIDs = new HashSet<>();
 
-
+    // TODO: find deg offset
     private static final double DEG_OFFSET = 8;
     private static final double STRIDE_LENGTH = 0.72625;
     private static final double DRAW_RATIO = 11.75;
@@ -124,7 +125,7 @@ public class MainActivity extends AppCompatActivity {
 
         // Start task every 2 seconds
         Timer timer = new Timer();
-        timer.schedule(new RemoveTask(), 0, 2000);
+        timer.schedule(new RemoveTask(), 0, 1000);
 
     }
 
@@ -244,14 +245,14 @@ public class MainActivity extends AppCompatActivity {
         } else {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
         }
-        // Don't need to change canvas
+
         bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
         canvas = new Canvas(bitmap);
 
         Paint paint = new Paint();
         paint.setColor(Color.RED);
 
-        // draw the circle with 117.5 scale ratio
+        // draw the circle with 117.5 x-y scale ratio
         canvas.drawCircle((float) (x * DRAW_RATIO), (float) (y * DRAW_RATIO), 10, paint);
 
         ivOverlay.setImageBitmap(bitmap);
@@ -277,11 +278,11 @@ public class MainActivity extends AppCompatActivity {
 
                 if (db.containsBSSID(sr.BSSID)) {
                     AccessPoint ap = db.getAP(sr.BSSID);
+
                     BSSID bssid = ap.bssids.get(sr.BSSID);
-                    bssid.timeout = 0;
+                    bssid.timestamp = System.currentTimeMillis();
                     bssid.addReading(sr.level);
                     bssid.setFrequency(sr.frequency);
-                    bssid.timeout = 0;
 
                     ap.averageDistance = calculateDistance(ap);
                     System.out.println("home distance: " + ap.averageDistance);
@@ -290,9 +291,13 @@ public class MainActivity extends AppCompatActivity {
 
                     // sort by the *closest* access points, based on their distance
                     currentAPs.add(ap);
+
+                    if(ap.getZ() == location.z) {
+                        canvas.drawCircle((float) (ap.getX() * DRAW_RATIO), (float) (ap.getY() * DRAW_RATIO), 10, new Paint(Color.BLUE));
+                    }
+
                 }
 
-                // remove an BSSID if it hasnt been seen in the last 3 scans
                 currentBSSIDs.add(sr.BSSID);
 
                 // need 3 APs
@@ -354,8 +359,6 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
-    // -34dbm right next to co228
-
     private double calculateDistance(AccessPoint ap) {
 
         double averageDistance = 0;
@@ -365,21 +368,20 @@ public class MainActivity extends AppCompatActivity {
             int individualLevel = 0;
             int divideIterations = Math.min(bssid.getReadings().size(), 3);
 
-            if (bssid.getReadings().size() != 0) {
+            if (!bssid.getReadings().isEmpty()) {
 
                 // get the 3 most recent values if there are more than three
                 int iterations = Math.min(bssid.getReadings().size(), 3);
                 for (int i = bssid.getReadings().size() - 1; i >= 0 && iterations > 0; i--, iterations--) {
                     individualLevel += bssid.getReadings().get(i);
                 }
-                // average each level reading for each BSSID on the Access Point
 
-            }
-
-            if(divideIterations != 0) {
+                // average each distance reading for each BSSID on the Access Point
                 individualLevel = individualLevel / divideIterations;
-                //averageDistance += (convertRssiToM(individualLevel, bssid.getWavelength(), ap.getZ() == location.z));
                 averageDistance += (convertRssiToM(individualLevel, bssid.getWavelength(), true));
+
+                //averageDistance += (convertRssiToM(individualLevel, bssid.getWavelength(), ap.getZ() == location.z));
+
             }
 
         }
@@ -393,10 +395,10 @@ public class MainActivity extends AppCompatActivity {
 
         // taking into account APs on different floors will have an increased path loss exponent
         if (sameFloor) {
-            return Math.pow(10, (RSSI + 34) / (-10 * SAME_FLOOR_EXP));
+            return Math.pow(10, (RSSI + BASE_LEVEL) / (-10 * SAME_FLOOR_EXP));
             //return Math.pow(10, ((RSSI + (20 * (Math.log10((4 * Math.PI)/wavelength)))) / (-10 * SAME_FLOOR_EXP)));
         } else {
-            return Math.pow(10, (RSSI + 34) / (-10 * DIFF_FLOOR_EXP));
+            return Math.pow(10, (RSSI + BASE_LEVEL) / (-10 * DIFF_FLOOR_EXP));
             //return Math.pow(10, ((RSSI + (20 * (Math.log10((4 * Math.PI)/wavelength))) / (-10 * DIFF_FLOOR_EXP))));
         }
     }
@@ -438,7 +440,7 @@ public class MainActivity extends AppCompatActivity {
     };
 
     /**
-     * Background task to remove Access Points that haven't been seen in a while
+     * Background task to remove Access Points that haven't been seen in 5 seconds
      */
     private class RemoveTask extends TimerTask{
 
@@ -452,25 +454,24 @@ public class MainActivity extends AppCompatActivity {
                 // iterate through each
                 for (BSSID bssid : ap.bssids.values()) {
 
-                    if (!currentBSSIDs.contains(bssid.getBssid())) {
-                        bssid.timeout += 1;
+                    System.out.println("DIFF: " + (System.currentTimeMillis()- bssid.timestamp));
 
-                        if (bssid.timeout == 5) {
-                            bssid.getReadings().clear();
-                        }
+                    if (System.currentTimeMillis() - bssid.timestamp >= 5000) {
+                        bssid.getReadings().clear();
                     }
                 }
 
                 // remove this access point because it has no current readings
-                int count = 0;
+                boolean remove = false;
                 for (BSSID bssid : ap.bssids.values()){
-                    if(!bssid.getReadings().isEmpty()){
-                        count+=1;
+                    if(bssid.getReadings().isEmpty()){
+                        remove = true;
                     }
                 }
 
-                if (count == 0){
+                if (remove){
                     removeAPs.add(ap);
+                    System.out.println("removed: " + ap.getDesc());
                 }
             }
 

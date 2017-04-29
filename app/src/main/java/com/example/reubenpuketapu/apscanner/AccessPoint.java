@@ -50,7 +50,7 @@ public class AccessPoint {
         return desc;
     }
 
-    // Auto implemented
+    // Auto generated
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -65,7 +65,7 @@ public class AccessPoint {
 
     }
 
-    // Auto implemented
+    // Auto generated
     @Override
     public int hashCode() {
         int result;
@@ -87,7 +87,7 @@ public class AccessPoint {
             Iterator<BSSID> i = bssids.values().iterator();
             while (i.hasNext()) {
                 BSSID s = i.next();
-                if (s.timeout >= 5) {
+                if (System.currentTimeMillis() - s.timestamp >= 5) {
                     bssids.remove(s);
                 }
             }

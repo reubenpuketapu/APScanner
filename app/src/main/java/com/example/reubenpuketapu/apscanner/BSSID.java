@@ -1,22 +1,17 @@
 package com.example.reubenpuketapu.apscanner;
 
-import android.content.Intent;
-
 import java.util.ArrayList;
 import java.util.List;
 
-/**
- * Created by reubenpuketapu on 28/04/17.
- */
-
 public class BSSID {
+
 
     public static final double C = 3e8;
 
     private String bssid;
     private double frequency;
 
-    public int timeout = 0;
+    public long timestamp = 0;
     private List<Integer> readings = new ArrayList<>();
 
 
@@ -36,6 +31,22 @@ public class BSSID {
         this.frequency = frequency;
     }
 
+    public void addReading(int level) {
+        readings.add(level);
+    }
+
+    public List<Integer> getReadings(){
+
+        //int maxIndex = Math.min(readings.size(), 3);
+
+        if (readings.size() >= 10){
+            readings.remove(0);
+        }
+
+        return readings;
+    }
+
+    // Auto generated
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -47,18 +58,9 @@ public class BSSID {
 
     }
 
+    // Auto generated
     @Override
     public int hashCode() {
         return bssid != null ? bssid.hashCode() : 0;
-    }
-
-    public void addReading(int level) {
-        readings.add(level);
-    }
-
-    public List<Integer> getReadings(){
-
-        //int maxIndex = Math.min(readings.size(), 3);
-        return readings;
     }
 }
