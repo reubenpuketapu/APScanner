@@ -10,7 +10,7 @@ public class Location {
     public double y;
     public double z;
 
-    public Location(double x, double y) {
+    public Location(double x, double y, double z) {
         this.x = x;
         this.y = y;
         this.z = z;

@@ -33,7 +33,15 @@ import org.apache.commons.math3.linear.RealVector;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.NavigableSet;
+import java.util.Set;
+import java.util.SortedSet;
+import java.util.Timer;
+import java.util.TimerTask;
+import java.util.TreeSet;
 
 
 public class MainActivity extends AppCompatActivity {
@@ -57,7 +65,9 @@ public class MainActivity extends AppCompatActivity {
     private List<ScanResult> scanResults;
     private Database db;
 
-    private List<AccessPoint> currentAPs = new ArrayList<>();
+    private TreeSet<AccessPoint> currentAPs;
+    private Set<String> currentBSSIDs = new HashSet<>();
+
 
     private static final double DEG_OFFSET = 8;
     private static final double STRIDE_LENGTH = 0.72625;
@@ -72,18 +82,18 @@ public class MainActivity extends AppCompatActivity {
     private float[] geomagnetic = new float[3];
 
     // x y location in metres
-    private Location location = new Location(30,30);
+    private Location location = new Location(30, 30, 2);
 
     // dx dy in metres
     private double dx;
     private double dy;
 
-    private double oldz = -1;
-
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.map_main);
+
+        currentAPs = new TreeSet<>(accessPointComparator);
 
         // UI STUFF
         button = (Button) findViewById(R.id.scan_button);
@@ -91,8 +101,8 @@ public class MainActivity extends AppCompatActivity {
 
         dist = (TextView) findViewById(R.id.distanceText);
 
-        ivBackground = (ImageView)findViewById(R.id.iv_background);
-        ivOverlay = (ImageView)findViewById(R.id.iv_overlay);
+        ivBackground = (ImageView) findViewById(R.id.iv_background);
+        ivOverlay = (ImageView) findViewById(R.id.iv_overlay);
         ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
         ivBackground.setOnTouchListener(imageListener);
 
@@ -112,6 +122,10 @@ public class MainActivity extends AppCompatActivity {
         sensorManager.registerListener(gravListener, gravSensor, SensorManager.SENSOR_DELAY_FASTEST);
         sensorManager.registerListener(magListener, magSensor, SensorManager.SENSOR_DELAY_FASTEST);
 
+        // Start task every 2 seconds
+        Timer timer = new Timer();
+        timer.schedule(new RemoveTask(), 0, 2000);
+
     }
 
     // SENSOR EVENTS
@@ -125,7 +139,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
     };
 
     private SensorEventListener magListener = new SensorEventListener() {
@@ -141,12 +156,12 @@ public class MainActivity extends AppCompatActivity {
             sensorManager.getOrientation(r, temp);
 
             float azimuthInRadians = temp[0];
-            float azimuthInDegrees = (float)Math.toDegrees(azimuthInRadians);
+            float azimuthInDegrees = (float) Math.toDegrees(azimuthInRadians);
             if (azimuthInDegrees < 0.0f) {
                 azimuthInDegrees += 360.0f;
             }
             azimuthInDegrees += DEG_OFFSET;
-            orientation[0] = (float)Math.toRadians(azimuthInDegrees);
+            orientation[0] = (float) Math.toRadians(azimuthInDegrees);
 
             dx = STRIDE_LENGTH * Math.sin((orientation[0]));
             dy = STRIDE_LENGTH * Math.cos((orientation[0]));
@@ -154,7 +169,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy){}
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
     };
 
 
@@ -171,7 +187,8 @@ public class MainActivity extends AppCompatActivity {
         }
 
         @Override
-        public void onAccuracyChanged(Sensor sensor, int accuracy) {}
+        public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        }
     };
 
     private SensorEventListener pressureListener = new SensorEventListener() {
@@ -198,37 +215,33 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public boolean onTouch(View v, MotionEvent event) {
 
-            int x = (int)event.getX();
-            int y = (int)event.getY();
+            int x = (int) event.getX();
+            int y = (int) event.getY();
 
             int[] xy = new int[2];
             v.getLocationOnScreen(xy);
 
             // off set the ratio
-            location.x = (x - xy[0])/DRAW_RATIO;
-            location.y = y/DRAW_RATIO ;
+            location.x = (x - xy[0]) / DRAW_RATIO;
+            location.y = y / DRAW_RATIO;
 
-            drawLocation(location.x, location.y, 2);
+            drawLocation(location.x, location.y, location.z);
 
             return false;
         }
     };
 
-    public void drawLocation(double x, double y, double floor){
+    public void drawLocation(double x, double y, double floor) {
 
-        if (floor == 0){
-            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.omaha, null));
-        }
-        else if (floor == 1){
+        if (floor == 1) {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
-        }
-        else if (floor == 3){
+        } else if (floor == 3) {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
-        }
-        else if (floor == 4){
+        } else if (floor == 4) {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
-        }
-        else  {
+        } else if (floor == 5) {
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.five, null));
+        } else {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
         }
         // Don't need to change canvas
@@ -239,15 +252,9 @@ public class MainActivity extends AppCompatActivity {
         paint.setColor(Color.RED);
 
         // draw the circle with 117.5 scale ratio
-
-        for (AccessPoint ap : db.getAccessPoints()) {
-            if(ap.getZ() == floor) canvas.drawCircle((int)(ap.getX()*DRAW_RATIO), (int)(ap.getY()*DRAW_RATIO), 10, paint);
-        }
-
+        canvas.drawCircle((float) (x * DRAW_RATIO), (float) (y * DRAW_RATIO), 10, paint);
 
         ivOverlay.setImageBitmap(bitmap);
-
-        //oldz = z;
 
     }
 
@@ -263,80 +270,51 @@ public class MainActivity extends AppCompatActivity {
     private BroadcastReceiver wifiReceiver = new BroadcastReceiver() {
         @Override
         public void onReceive(Context context, Intent intent) {
-            //wifiManager.setTdlsEnabledWithMacAddress();
 
             scanResults = wifiManager.getScanResults();
 
-            //clear visiting APs
-
-            System.out.println("HELLO");
-
-            /*List<String> seenBSSIDs = new ArrayList<>();
             for (ScanResult sr : scanResults) {
 
-                if (sr.SSID.contains("victoria") && !db.getAccessPoints().containsKey(sr.BSSID) && sr.frequency < 4000) {
-                    //desc.append(sr.BSSID + "\n");
-                    //level.append(sr.level + "\n");
-                }
+                if (db.containsBSSID(sr.BSSID)) {
+                    AccessPoint ap = db.getAP(sr.BSSID);
+                    BSSID bssid = ap.bssids.get(sr.BSSID);
+                    bssid.timeout = 0;
+                    bssid.addReading(sr.level);
+                    bssid.setFrequency(sr.frequency);
+                    bssid.timeout = 0;
 
-                if(db.getAccessPoints().containsKey(sr.BSSID)) {
-                    AccessPoint ap = db.getAccessPoints().get(sr.BSSID);
-                    ap.readings.add(sr.level);
-                    ap.distance = calculateDistance(ap);
-                    ap.timeout = 0;
+                    ap.averageDistance = calculateDistance(ap);
+                    System.out.println("home distance: " + ap.averageDistance);
+
+                    dist.setText("distance: " + ap.averageDistance);
 
                     // sort by the *closest* access points, based on their distance
                     currentAPs.add(ap);
-                    Collections.sort(currentAPs, new Comparator<AccessPoint>() {
-                        @Override
-                        public int compare(AccessPoint lhs, AccessPoint rhs) {
-                            if(lhs.distance > rhs.distance) return -1;
-                            else if (lhs.distance < rhs.distance) return 1;
-                            else return 0;
-                        }
-                    });
                 }
 
-                System.out.println(sr.SSID + " " + convertRssiToM(sr.level));
+                // remove an BSSID if it hasnt been seen in the last 3 scans
+                currentBSSIDs.add(sr.BSSID);
 
+                // need 3 APs
+                if (currentAPs.size() >= 4) {
 
-                // remove an access point if it hasnt been seen in the last 3 scans
-                seenBSSIDs.add(sr.BSSID);
-                for (int i = 0; i < currentAPs.size(); i++){
+                    Location tempLocation = calculateWifiLocation();
 
-                    if(!seenBSSIDs.contains(currentAPs.get(i).getBssid()) && currentAPs.contains(sr.BSSID)){
-                        currentAPs.get(i).timeout += 1;
+                    dist.setText(tempLocation.x + " " + tempLocation.y + " " + tempLocation.z + "\n");
 
-                        if(currentAPs.get(i).timeout == 3){
-                            currentAPs.remove(i);
-                        }
-                    }
+                    // set and draw the location
+                    location.x = tempLocation.x;
+                    location.y = tempLocation.y;
+                    location.z = tempLocation.z;
+
+                    drawLocation(location.x, location.y, location.z);
+
                 }
-            }*/
 
-
-
-            // need 3 APs
-            if (currentAPs.size() >=3) {
-
-                Location tempLocation = calculateWifiLocation();
-
-                dist.setText(location.x + " " + location.y + " " + location.z + "\n");
-
-                // set and draw the location
-                location.x = tempLocation.x;
-                location.y = tempLocation.y;
-
-                drawLocation(location.x, location.y, location.z);
+                // continuously scan for wifi networks
+                wifiManager.startScan();
 
             }
-
-
-            // z for omaha
-            //drawLocation(4, 4, 1);
-
-            //wifiManager.startScan();
-
         }
     };
 
@@ -346,14 +324,19 @@ public class MainActivity extends AppCompatActivity {
         int size = Math.min(currentAPs.size(), 5);
 
         double[] distances = new double[size];
-        double[][] positions = new double[size][2];
+        double[][] positions = new double[size][3];
 
         // only x and y
-        for (int i = 0; i < size; i++){
-            distances[i] = currentAPs.get(i).averageDistance;
-            positions[i][0] = currentAPs.get(i).getX();
-            positions[i][1] = currentAPs.get(i).getY();
-            //positions[i][2] = currentAPs.get(i).getZ();
+        int i = 0;
+        for(AccessPoint ap : currentAPs){
+            distances[i] = ap.averageDistance;
+            positions[i][0] = ap.getX();
+            positions[i][1] = ap.getY();
+            positions[i][2] = ap.getZ();
+
+            if (i++ >= size){
+                break;
+            }
         }
 
         NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
@@ -366,60 +349,136 @@ public class MainActivity extends AppCompatActivity {
         RealVector standardDeviation = optimum.getSigma(0);
         RealMatrix covarianceMatrix = optimum.getCovariances(0);
 
-        return new Location(centroid[0], centroid[1]);
+        return new Location(centroid[0], centroid[1], centroid[2]);
         //return new Location(200,200);
 
     }
 
     // -34dbm right next to co228
 
-    /*private double calculateDistance(AccessPoint ap){
+    private double calculateDistance(AccessPoint ap) {
 
-        // get the 3 most recent values if there are more than three
+        double averageDistance = 0;
 
-        int averageLevel = 0;
-        int count = 3;
-        for(int i = ap.readings.size()-1; i > 0; i--){
-            if (count == 0) break;
-            averageLevel += ap.readings.get(i);
-            count--;
+        for (BSSID bssid : ap.bssids.values()) {
+
+            int individualLevel = 0;
+            int divideIterations = Math.min(bssid.getReadings().size(), 3);
+
+            if (bssid.getReadings().size() != 0) {
+
+                // get the 3 most recent values if there are more than three
+                int iterations = Math.min(bssid.getReadings().size(), 3);
+                for (int i = bssid.getReadings().size() - 1; i >= 0 && iterations > 0; i--, iterations--) {
+                    individualLevel += bssid.getReadings().get(i);
+                }
+                // average each level reading for each BSSID on the Access Point
+
+            }
+
+            if(divideIterations != 0) {
+                individualLevel = individualLevel / divideIterations;
+                //averageDistance += (convertRssiToM(individualLevel, bssid.getWavelength(), ap.getZ() == location.z));
+                averageDistance += (convertRssiToM(individualLevel, bssid.getWavelength(), true));
+            }
+
         }
 
-        averageLevel = averageLevel / ap.readings.size();
+        return averageDistance / ap.bssids.size();
+    }
 
-        return convertRssiToM(averageLevel, ap.getZ() == location.z);
-    }*/
+    private double convertRssiToM(double RSSI, double wavelength, boolean sameFloor) {
 
-    private double convertRssiToM(double RSSI, boolean sameFloor){
-        if(sameFloor) {
-            return Math.pow(10, ((RSSI+BASE_LEVEL) / - 10 * SAME_FLOOR_EXP));
-        }
-        else {
-            return Math.pow(10, ((RSSI+BASE_LEVEL) / - 10 * DIFF_FLOOR_EXP));
+        //return Math.pow(10, ((RSSI+34) / -35));
 
+        // taking into account APs on different floors will have an increased path loss exponent
+        if (sameFloor) {
+            return Math.pow(10, (RSSI + 34) / (-10 * SAME_FLOOR_EXP));
+            //return Math.pow(10, ((RSSI + (20 * (Math.log10((4 * Math.PI)/wavelength)))) / (-10 * SAME_FLOOR_EXP)));
+        } else {
+            return Math.pow(10, (RSSI + 34) / (-10 * DIFF_FLOOR_EXP));
+            //return Math.pow(10, ((RSSI + (20 * (Math.log10((4 * Math.PI)/wavelength))) / (-10 * DIFF_FLOOR_EXP))));
         }
     }
 
-    private int calculateWifiZ(){
+    private int calculateWifiZ() {
 
-        int[] floorCount = {0,0,0,0,0};
+        int[] floorCount = {0, 0, 0, 0, 0};
 
         // get the closest three APs
-        for(int i = 0; i < currentAPs.size() && i < 3; i++){
-            floorCount[currentAPs.get(i).getZ()-1]++;
+        int i = 0;
+        for (AccessPoint ap : currentAPs){
+            floorCount[ap.getZ() - 1]++;
+
+            if(i++ >= 3) break;
         }
 
         int maxFloor = 0;
-
-        for (int i = 0; i < floorCount.length; i++){
-            if(floorCount[i] > maxFloor){
+        int floor = 0;
+        for (i = 0; i < floorCount.length; i++) {
+            if (floorCount[i] > maxFloor) {
                 maxFloor = floorCount[i];
+                floor = i;
             }
         }
 
-        return maxFloor+1;
+        return floor+1;
 
     }
 
+
+    private Comparator<AccessPoint> accessPointComparator = new Comparator<AccessPoint>() {
+        @Override
+        public int compare(AccessPoint lhs, AccessPoint rhs) {
+            if (lhs.averageDistance > rhs.averageDistance) return -1;
+            else if (lhs.averageDistance < rhs.averageDistance) return 1;
+            else return 0;
+        }
+
+    };
+
+    /**
+     * Background task to remove Access Points that haven't been seen in a while
+     */
+    private class RemoveTask extends TimerTask{
+
+        @Override
+        public void run() {
+
+            Set<AccessPoint> removeAPs = new HashSet<>();
+
+            for(AccessPoint ap : currentAPs){
+
+                // iterate through each
+                for (BSSID bssid : ap.bssids.values()) {
+
+                    if (!currentBSSIDs.contains(bssid.getBssid())) {
+                        bssid.timeout += 1;
+
+                        if (bssid.timeout == 5) {
+                            bssid.getReadings().clear();
+                        }
+                    }
+                }
+
+                // remove this access point because it has no current readings
+                int count = 0;
+                for (BSSID bssid : ap.bssids.values()){
+                    if(!bssid.getReadings().isEmpty()){
+                        count+=1;
+                    }
+                }
+
+                if (count == 0){
+                    removeAPs.add(ap);
+                }
+            }
+
+            currentAPs.removeAll(removeAPs);
+        }
+    }
+
 }
+
+
 
