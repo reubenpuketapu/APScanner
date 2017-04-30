@@ -1,4 +1,7 @@
-package com.example.reubenpuketapu.apscanner;
+package com.example.reubenpuketapu.apscanner.db;
+
+import com.example.reubenpuketapu.apscanner.wrappers.AccessPoint;
+import com.example.reubenpuketapu.apscanner.wrappers.BSSID;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -6,7 +9,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.StringTokenizer;
 
 /**
  * Created by reubenpuketapu on 3/04/17.
@@ -14,7 +16,8 @@ import java.util.StringTokenizer;
 
 public class Database {
 
-    private final List<AccessPoint> accessPoints = new ArrayList<>();
+    public final List<AccessPoint> accessPoints = new ArrayList<>();
+    public ArrayList<Double> calibrationValues = new ArrayList<>();
     private final Set<String> allBSSIDS = new HashSet<>();
 
     public Database(){

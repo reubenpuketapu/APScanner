@@ -1,4 +1,4 @@
-package com.example.reubenpuketapu.apscanner;
+package com.example.reubenpuketapu.apscanner.wrappers;
 
 /**
  * Created by puketareub on 6/04/17.
