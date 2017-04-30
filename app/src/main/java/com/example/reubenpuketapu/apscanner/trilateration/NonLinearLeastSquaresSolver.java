@@ -19,7 +19,7 @@ public class NonLinearLeastSquaresSolver {
 	protected final TrilaterationFunction function;
 	protected final LeastSquaresOptimizer leastSquaresOptimizer;
 
-	protected final static int MAXNUMBEROFITERATIONS = 10000;
+	protected final static int MAXNUMBEROFITERATIONS = 1000;
 
 	public NonLinearLeastSquaresSolver(TrilaterationFunction function, LeastSquaresOptimizer leastSquaresOptimizer) {
 		this.function = function;

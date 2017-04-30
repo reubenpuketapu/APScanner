@@ -33,7 +33,7 @@ public class CalibrateActivity extends Activity{
 
     private ArrayList<Double> currentValues = new ArrayList<>();
 
-    private ArrayList<Float> averageValues= new ArrayList<>();
+    private ArrayList<String> averageValues= new ArrayList<>();
 
     private Double currentValue = 0.0;
 
@@ -66,17 +66,31 @@ public class CalibrateActivity extends Activity{
             }
         });
 
-        averageValues.add(0.0f);
-        averageValues.add(0.0f);
-        averageValues.add(0.0f);
-        averageValues.add(0.0f);
-        averageValues.add(0.0f);
+        averageValues.add("");
+        averageValues.add("");
+        averageValues.add("");
+        averageValues.add("");
+        averageValues.add("");
 
     }
 
     private void startActivity(){
+        ArrayList<CharSequence> cs = convertStringArray();
         Intent intent = new Intent(this, MainActivity.class);
+        intent.putCharSequenceArrayListExtra("calibrate", cs);
         startActivity(intent);
+    }
+
+    private ArrayList<CharSequence> convertStringArray() {
+
+        ArrayList<CharSequence> cs = new ArrayList<>();
+
+        for (String s : averageValues){
+            cs.add(s);
+        }
+
+        return cs;
+
     }
 
     private SensorEventListener pressureListener = new SensorEventListener() {
@@ -104,20 +118,16 @@ public class CalibrateActivity extends Activity{
 
             List<Double> list = currentValues.subList(currentValues.size()-11, currentValues.size()-1);
 
-            float average = 0;
+            Double average = 0.0;
 
             for (int i = 0; i < 10; i++){
                 average+= list.get(i);
             }
-
-            averageValues.set(0, ((average/list.size())));
+            average /= list.size();
+            averageValues.set(0, average.toString());
 
             System.out.println("value: " + averageValues.get(0));
             System.out.println("cvalue: " + currentValue);
-
-            SharedPreferences.Editor sp = getSharedPreferences("calibration", MODE_APPEND).edit();
-
-            sp.putFloat("one", average);
 
         }
     };
@@ -128,20 +138,16 @@ public class CalibrateActivity extends Activity{
 
             List<Double> list = currentValues.subList(currentValues.size()-11, currentValues.size()-1);
 
-            float average = 0;
+            Double average = 0.0;
 
             for (int i = 0; i < 10; i++){
                 average+= list.get(i);
             }
-
-            averageValues.set(1, average/list.size());
+            average /= list.size();
+            averageValues.set(1, average.toString());
 
             System.out.println("value: " + averageValues.get(1));
             System.out.println("cvalue: " + currentValue);
-
-            SharedPreferences.Editor sp = getSharedPreferences("calibration", MODE_APPEND).edit();
-
-            sp.putFloat("four", average);
 
 
         }
@@ -152,20 +158,16 @@ public class CalibrateActivity extends Activity{
 
             List<Double> list = currentValues.subList(currentValues.size()-11, currentValues.size()-1);
 
-            float average = 0;
+            Double average = 0.0;
 
             for (int i = 0; i < 10; i++){
                 average+= list.get(i);
             }
-
-            averageValues.set(2, average/list.size());
+            average /= list.size();
+            averageValues.set(2, average.toString());
 
             System.out.println("value: " + averageValues.get(2));
             System.out.println("cvalue: " + currentValue);
-
-            SharedPreferences.Editor sp = getSharedPreferences("calibration", MODE_APPEND).edit();
-
-            sp.putFloat("three", average);
 
 
         }
@@ -176,20 +178,16 @@ public class CalibrateActivity extends Activity{
 
             List<Double> list = currentValues.subList(currentValues.size()-11, currentValues.size()-1);
 
-            float average = 0;
+            Double average = 0.0;
 
             for (int i = 0; i < 10; i++){
                 average+= list.get(i);
             }
-
-            averageValues.set(3, average/list.size());
+            average /= list.size();
+            averageValues.set(3, average.toString());
 
             System.out.println("value: " + averageValues.get(3));
             System.out.println("cvalue: " + currentValue);
-
-            SharedPreferences.Editor sp = getSharedPreferences("calibration", MODE_APPEND).edit();
-
-            sp.putFloat("four", average);
 
 
         }
@@ -200,24 +198,22 @@ public class CalibrateActivity extends Activity{
 
             List<Double> list = currentValues.subList(currentValues.size()-11, currentValues.size()-1);
 
-            float average = 0;
+            Double average = 0.0;
 
             for (int i = 0; i < 10; i++){
                 average+= list.get(i);
             }
-
-            averageValues.set(4, average/list.size());
+            average /= list.size();
+            averageValues.set(4, average.toString());
 
             System.out.println("value: " + averageValues.get(4));
             System.out.println("cvalue: " + currentValue);
 
-            SharedPreferences.Editor sp = getSharedPreferences("calibration", MODE_APPEND).edit();
-
-            sp.putFloat("five", average);
-
 
         }
     };
+
+
 
 
 

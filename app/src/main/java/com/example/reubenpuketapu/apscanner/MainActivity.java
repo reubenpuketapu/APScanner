@@ -48,7 +48,7 @@ import java.util.TreeSet;
 public class MainActivity extends AppCompatActivity {
 
     private Button button;
-    private Button calibrate;
+    private Button reset;
     private TextView dist;
 
     private Canvas canvas;
@@ -68,6 +68,7 @@ public class MainActivity extends AppCompatActivity {
 
     private TreeSet<AccessPoint> currentAPs;
     private Set<String> currentBSSIDs = new HashSet<>();
+    private ArrayList<CharSequence> cs = new ArrayList<>();
 
     // TODO: find deg offset
     private static final double DEG_OFFSET = -80;
@@ -105,6 +106,15 @@ public class MainActivity extends AppCompatActivity {
         button = (Button) findViewById(R.id.scan_button);
         button.setOnClickListener(clickListener);
 
+        reset = (Button) findViewById(R.id.reset_button);
+        reset.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                reset();
+            }
+        });
+
+
         dist = (TextView) findViewById(R.id.distanceText);
 
         ivBackground = (ImageView) findViewById(R.id.iv_background);
@@ -115,7 +125,14 @@ public class MainActivity extends AppCompatActivity {
         // WIFI STUFF
         wifiManager = (WifiManager) getSystemService(Context.WIFI_SERVICE);
         registerReceiver(wifiReceiver, new IntentFilter(WifiManager.SCAN_RESULTS_AVAILABLE_ACTION));
-        db = new Database();
+
+        db = new Database(null);
+
+        Intent intent = getIntent();
+        cs  = intent.getCharSequenceArrayListExtra("calibrate");
+
+        db.calibrationValues = new ArrayList<>();
+        db.populateCalibrations(cs);
 
         // SENSOR STUFF
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -131,6 +148,14 @@ public class MainActivity extends AppCompatActivity {
         // Start task every 2 seconds
         Timer timer = new Timer();
         timer.schedule(new RemoveTask(), 0, 1000);
+
+    }
+
+    private void reset(){
+
+        currentAPs.clear();
+        currentBSSIDs.clear();
+        db = new Database(cs);
 
     }
 
@@ -218,11 +243,22 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent event) {
 
-            // TODO: need to calculate the values for each level and map them to each
-            // TODO: set to z!
+            double pressure = event.values[0];
 
-            // WORKS FOR HEIGHT!!!!!!!
-            //dist.setText(event.values[0]+ " \n");
+            double diff = 100000;
+            int index = 0;
+            for (int i = 0; i < db.calibrationValues.size(); i ++){
+
+                if (Math.abs(pressure - db.calibrationValues.get(i)) < diff){
+                    diff = Math.abs(pressure - db.calibrationValues.get(i) );
+                    index = i;
+                }
+            }
+
+            wifiLocation.z = index+1;
+            stepLocation.z = index+1;
+
+            dist.setText(event.values[0]+ " \n");
 
         }
 
@@ -276,8 +312,6 @@ public class MainActivity extends AppCompatActivity {
         while (iterator.hasNext() && i < VISIT_APS){
 
             AccessPoint ap = iterator.next();
-
-            //System.out.println(ap.getDesc() + " reading: " + ap.averageDistance);
 
             if(ap.getZ() == wifiLocation.z){
                 Paint green = new Paint();

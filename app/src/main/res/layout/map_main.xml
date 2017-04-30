@@ -12,6 +12,13 @@
         android:layout_gravity="center_horizontal"
         android:text="Scan"/>
 
+    <Button
+        android:id="@+id/reset_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="center_horizontal"
+        android:text="Reset"/>
+
     <TextView
         android:id="@+id/distanceText"
         android:layout_width="match_parent"

@@ -1,8 +1,18 @@
 package com.example.reubenpuketapu.apscanner.db;
 
+import android.content.SharedPreferences;
+import android.os.Environment;
+import android.util.Log;
+
 import com.example.reubenpuketapu.apscanner.wrappers.AccessPoint;
 import com.example.reubenpuketapu.apscanner.wrappers.BSSID;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.OutputStreamWriter;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -17,12 +27,11 @@ import java.util.Set;
 public class Database {
 
     public final List<AccessPoint> accessPoints = new ArrayList<>();
-    public ArrayList<Double> calibrationValues = new ArrayList<>();
+    public ArrayList<Double> calibrationValues;
     private final Set<String> allBSSIDS = new HashSet<>();
 
-    public Database(){
+    public Database (ArrayList<CharSequence> cs){
 
-        accessPoints.add(new AccessPoint(createSet("f4:cb:52:a4:0a:e4", "f4:cb:52:a4:0a:e8"), 1, 30, 30, "home"));
         accessPoints.add(new AccessPoint(createSet("08:17:35:9c:e1:c0","08:17:35:9c:e1:cd","08:17:35:9c:e1:cf"), 1, 76.1, 36,"Outside CO105"));//A
         accessPoints.add(new AccessPoint(createSet("08:17:35:9d:32:d0","08:17:35:9d:32:dd","08:17:35:9d:32:df"), 1, 65, 20.5,"CO118"));//B
         accessPoints.add(new AccessPoint(createSet("c8:f9:f9:be:0d:20","c8:f9:f9:be:0d:2d","c8:f9:f9:be:0d:2f"), 1, 65.2, 8.5,"Outside Fuji Xerox"));//C
@@ -76,6 +85,24 @@ public class Database {
         accessPoints.add(new AccessPoint(createSet("f4:cf:e2:b3:08:80","f4:cf:e2:b3:08:8d","f4:cf:e2:b3:08:8f"), 5, 83.1, 4.4,"Outside CO513"));
         addBSSIDSToSet();
 
+        if (cs != null){
+            populateCalibrations(cs);
+
+        }
+    }
+
+    public void populateCalibrations(ArrayList<CharSequence> cs) {
+
+        calibrationValues = new ArrayList<>();
+
+        calibrationValues.add(Double.parseDouble(cs.get(0).toString()));
+        calibrationValues.add(Double.parseDouble(cs.get(1).toString()));
+        calibrationValues.add(Double.parseDouble(cs.get(2).toString()));
+        calibrationValues.add(Double.parseDouble(cs.get(3).toString()));
+        calibrationValues.add(Double.parseDouble(cs.get(4).toString()));
+
+        System.out.println("calibration values: " + calibrationValues);
+
     }
 
     private void addBSSIDSToSet() {
@@ -108,4 +135,8 @@ public class Database {
     public boolean containsBSSID(String bssid) {
         return allBSSIDS.contains(bssid);
     }
+
+
+
+
 }
