@@ -558,8 +558,6 @@ public class MainActivity extends AppCompatActivity {
                     // Remove all of the readings from this BSSID if it's in the new set
                     bssid.getReadings().removeAll(removeReadings);
 
-
-
                 }
 
             }
