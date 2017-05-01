@@ -11,6 +11,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.TextView;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,6 +28,7 @@ public class CalibrateActivity extends Activity{
     private Button button4;
     private Button button5;
     private Button done;
+    private TextView text;
 
     private SensorManager sensorManager;
     private Sensor pressSensor;
@@ -65,6 +67,8 @@ public class CalibrateActivity extends Activity{
                 startActivity();
             }
         });
+
+        text = (TextView) findViewById(R.id.calibrateText);
 
         averageValues.add("");
         averageValues.add("");
@@ -208,6 +212,8 @@ public class CalibrateActivity extends Activity{
 
             System.out.println("value: " + averageValues.get(4));
             System.out.println("cvalue: " + currentValue);
+
+            text.setText(averageValues.toString());
 
 
         }

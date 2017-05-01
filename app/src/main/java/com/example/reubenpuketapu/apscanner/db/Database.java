@@ -86,12 +86,12 @@ public class Database {
         addBSSIDSToSet();
 
         if (cs != null){
-            populateCalibrations(cs);
+            //populateCalibrations(cs);
 
         }
     }
 
-    public void populateCalibrations(ArrayList<CharSequence> cs) {
+    /*public void populateCalibrations(ArrayList<CharSequence> cs) {
 
         calibrationValues = new ArrayList<>();
 
@@ -103,7 +103,7 @@ public class Database {
 
         System.out.println("calibration values: " + calibrationValues);
 
-    }
+    }*/
 
     private void addBSSIDSToSet() {
 

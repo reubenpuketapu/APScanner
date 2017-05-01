@@ -131,8 +131,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         cs  = intent.getCharSequenceArrayListExtra("calibrate");
 
-        db.calibrationValues = new ArrayList<>();
-        db.populateCalibrations(cs);
+        //db.calibrationValues = new ArrayList<>();
+        //db.populateCalibrations(cs);
 
         // SENSOR STUFF
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -247,16 +247,16 @@ public class MainActivity extends AppCompatActivity {
 
             double diff = 100000;
             int index = 0;
-            for (int i = 0; i < db.calibrationValues.size(); i ++){
+            //for (int i = 0; i < db.calibrationValues.size(); i ++){
 
-                if (Math.abs(pressure - db.calibrationValues.get(i)) < diff){
-                    diff = Math.abs(pressure - db.calibrationValues.get(i) );
-                    index = i;
-                }
-            }
+                //if (Math.abs(pressure - db.calibrationValues.get(i)) < diff){
+                //    //diff = Math.abs(pressure - db.calibrationValues.get(i) );
+                //    index = i;
+                //}
+            //}
 
-            wifiLocation.z = index+1;
-            stepLocation.z = index+1;
+            //wifiLocation.z = index+1;
+            //stepLocation.z = index+1;
 
             dist.setText(event.values[0]+ " \n");
 
@@ -338,10 +338,10 @@ public class MainActivity extends AppCompatActivity {
         paint.setColor(Color.RED);
 
         // draw the circle with 117.5 x-y scale ratio
-        canvas.drawCircle((float) (wifiLocation.x * DRAW_RATIO), (float) (wifiLocation.y * DRAW_RATIO), 10, paint);
+        canvas.drawCircle((float) (((wifiLocation.x+stepLocation.x)/2) * DRAW_RATIO), (float) (((wifiLocation.y+stepLocation.y)/2) * DRAW_RATIO), 10, paint);
 
-        paint.setColor(Color.BLUE);
-        canvas.drawCircle((float) (stepLocation.x * DRAW_RATIO), (float) (stepLocation.y * DRAW_RATIO), 10, paint);
+        //paint.setColor(Color.BLUE);
+        //canvas.drawCircle((float) (stepLocation.x * DRAW_RATIO), (float) (stepLocation.y * DRAW_RATIO), 10, paint);
 
 
         ivOverlay.setImageBitmap(bitmap);
@@ -377,15 +377,9 @@ public class MainActivity extends AppCompatActivity {
 
                     ap.averageDistance = calculateDistance(ap);
 
-                    //dist.setText("distance: " + ap.averageDistance);
 
                     // sort by the *closest* access points, based on their distance
                     currentAPs.add(ap);
-
-                    //if(ap.getZ() == location.z) {
-                        //canvas.drawCircle((float) (ap.getX() * DRAW_RATIO), (float) (ap.getY() * DRAW_RATIO), 10, new Paint(Color.BLUE));
-                    //}
-                    //}
 
                 }
 
@@ -396,10 +390,6 @@ public class MainActivity extends AppCompatActivity {
 
                     try {
                         Location tempLocation = calculateWifiLocation();
-
-                        //dist.setText(tempLocation.x + " " + tempLocation.y + " " + tempLocation.z + "\n");
-
-                        // set and draw the location
                         wifiLocation.x = tempLocation.x;
                         wifiLocation.y = tempLocation.y;
                         wifiLocation.z = (int) Math.round(tempLocation.z);
@@ -446,12 +436,7 @@ public class MainActivity extends AppCompatActivity {
             // the answer
             double[] centroid = optimum.getPoint().toArray();
 
-            // error and geometry information; may throw SingularMatrixException depending the threshold argument provided
-//        RealVector standardDeviation = optimum.getSigma(0);
-            //      RealMatrix covarianceMatrix = optimum.getCovariances(0);
-
             return new Location(centroid[0], centroid[1], wifiLocation.z);
-            //return new Location(200,200);
         }
         catch (TooManyEvaluationsException e){
 
@@ -467,16 +452,9 @@ public class MainActivity extends AppCompatActivity {
 
         for (BSSID bssid : ap.bssids.values()) {
 
-            int individualLevel = 0;
             int divideIterations = Math.min(bssid.getReadings().size(), 10);
 
             if (!bssid.getReadings().isEmpty() && divideIterations >= 2) {
-
-                // get the 3 most recent values if there are more than three
-                /*int iterations = Math.min(bssid.getReadings().size(), 10);
-                for (int i = bssid.getReadings().size() - 1; i >= 0 && iterations > 0; i--, iterations--) {
-                    individualLevel += bssid.getReadings().get(i);
-                }*/
 
                 Integer[] readings = bssid.getIntReadings().toArray(new Integer[bssid.getIntReadings().size()]);
 
@@ -486,18 +464,10 @@ public class MainActivity extends AppCompatActivity {
                 else
                     median = (double) readings[readings.length/2];
 
-                // average each distance reading for each BSSID on the Access Point
-                individualLevel = individualLevel / divideIterations;
-
-                //System.out.println(ap.getDesc() + " same level: " + (ap.getZ() == location.z));
-
                 averageDistance += (convertRssiToM(median, bssid.getWavelength(), ap.getZ() == wifiLocation.z));
-
-                //averageDistance += (convertRssiToM(individualLevel, bssid.getWavelength(), ap.getZ() == location.z));
 
             }
 
-           // else return 1000;
 
         }
 
@@ -511,20 +481,10 @@ public class MainActivity extends AppCompatActivity {
         // taking into account APs on different floors will have an increased path loss exponent
         if (sameFloor) {
             return Math.pow(10, (RSSI + BASE_LEVEL) / (-10 * SAME_FLOOR_EXP));
-            //return Math.pow(10, ((RSSI + (20 * (Math.log10((4 * Math.PI)/wavelength)))) / (-10 * SAME_FLOOR_EXP)));
         } else {
             return Math.pow(10, (RSSI + BASE_LEVEL) / (-10 * DIFF_FLOOR_EXP));
-            //return Math.pow(10, ((RSSI + (20 * (Math.log10((4 * Math.PI)/wavelength))) / (-10 * DIFF_FLOOR_EXP))));
         }
 
-        /*double a = -0.07363796;
-        double b = -2.52218124;
-        double n = Math.max(2, a * RSSI + b);
-
-        double FSPL = 20 * Math.log(4.0 * Math.PI / wavelength);
-        double distance = Math.pow(10, (RSSI - FSPL)/ 10 * n);
-
-        return  distance;*/
     }
 
     private Comparator<AccessPoint> accessPointComparator = new Comparator<AccessPoint>() {
@@ -584,10 +544,6 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
 
-                /*if (remove){
-                    removeAPs.add(ap);
-                    System.out.println("removed: " + ap.getDesc());
-                }*/
             }
 
             currentAPs.removeAll(removeAPs);
