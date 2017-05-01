@@ -132,8 +132,8 @@ public class MainActivity extends AppCompatActivity {
         Intent intent = getIntent();
         cs  = intent.getCharSequenceArrayListExtra("calibrate");
 
-        //db.calibrationValues = new ArrayList<>();
-        //db.populateCalibrations(cs);
+        db.calibrationValues = new ArrayList<>();
+        db.populateCalibrations(cs);
 
         // SENSOR STUFF
         sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
@@ -185,6 +185,8 @@ public class MainActivity extends AppCompatActivity {
         @Override
         public void onSensorChanged(SensorEvent event) {
 
+            // Calculate the bearing that the device is pointing
+
             geomagnetic[0] = event.values[0];
             geomagnetic[1] = event.values[1];
             geomagnetic[2] = event.values[2];
@@ -212,6 +214,7 @@ public class MainActivity extends AppCompatActivity {
 
             orientation[0] = (float) Math.toRadians(azimuthInDegrees);
 
+            // Set the amount that the user should move if a step is taken
             dx = STRIDE_LENGTH * Math.sin((orientation[0]));
             dy = STRIDE_LENGTH * Math.cos((orientation[0]));
 
@@ -227,6 +230,8 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSensorChanged(SensorEvent event) {
+
+            // If the reference location has been set then update it
             if (stepLocation.x > 0.0 || stepLocation.y  >0.0) {
                 stepLocation.x += dx;
                 stepLocation.y -= dy;
@@ -245,6 +250,7 @@ public class MainActivity extends AppCompatActivity {
 
             double pressure = event.values[0];
 
+            // Return the floor that is closest to the measured pressure
             double diff = 100000;
             int index = 0;
             try {
@@ -303,6 +309,9 @@ public class MainActivity extends AppCompatActivity {
             z = (int) Math.round((wifiLocation.z));
         }
         else{
+
+            // Average the values of the location and draw the location based on this
+
             x = (wifiLocation.z + stepLocation.z)/2;
             y = (wifiLocation.z + stepLocation.z)/2;
             z = (int) Math.round((wifiLocation.z + stepLocation.z)/2);
@@ -370,7 +379,6 @@ public class MainActivity extends AppCompatActivity {
     private View.OnClickListener clickListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
-            //location.z++;
             wifiManager.startScan();
         }
     };
@@ -397,13 +405,12 @@ public class MainActivity extends AppCompatActivity {
 
                     // sort by the *closest* access points, based on their distance
                     currentAPs.add(ap);
-
                 }
 
                 currentBSSIDs.add(sr.BSSID);
 
-                // need 3 APs
-                if (currentAPs.size() > 3) {
+                // need 4 APs to calculate x,y,z
+                if (currentAPs.size() >= VISIT_APS) {
 
                     try {
                         Location tempLocation = calculateWifiLocation();
@@ -445,14 +452,7 @@ public class MainActivity extends AppCompatActivity {
                 positions[i][1] = ap.getY();
                 positions[i][2] = ap.getZ();
 
-                for (BSSID bssid: ap.bssids.values()){
-                    System.out.println("bssid: " + bssid.getBssid() + " readings: " + bssid.getIntReadings());
-                }
-
-                System.out.println("distance: " + ap.averageDistance + "x: " );
             }
-
-            System.out.println("--------------------");
 
             NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
             LeastSquaresOptimizer.Optimum optimum = solver.solve();
@@ -482,6 +482,7 @@ public class MainActivity extends AppCompatActivity {
 
                 Integer[] readings = bssid.getIntReadings().toArray(new Integer[bssid.getIntReadings().size()]);
 
+                // Use the median value for the reading value
                 double median;
                 if (readings.length % 2 == 0)
                     median = ((double)readings[readings.length/2] + (double)readings[readings.length/2 - 1])/2;
@@ -500,8 +501,6 @@ public class MainActivity extends AppCompatActivity {
 
     private double convertRssiToM(double RSSI, double wavelength, boolean sameFloor) {
 
-        //return Math.pow(10, ((RSSI+34) / -35));
-
         // taking into account APs on different floors will have an increased path loss exponent
         if (sameFloor) {
             return Math.pow(10, (RSSI + BASE_LEVEL) / (-10 * SAME_FLOOR_EXP));
@@ -511,6 +510,9 @@ public class MainActivity extends AppCompatActivity {
 
     }
 
+    /**
+     * Creates ordered Set based on the distance to the access point
+     */
     private Comparator<AccessPoint> accessPointComparator = new Comparator<AccessPoint>() {
         @Override
         public int compare(AccessPoint lhs, AccessPoint rhs) {
@@ -547,27 +549,17 @@ public class MainActivity extends AppCompatActivity {
                     List<Reading> readings = new ArrayList<>(bssid.getReadings());
 
                     for (Reading reading : readings) {
-                        //System.out.println("DIFF: " + (System.currentTimeMillis() - reading.timestamp));
 
                         if (System.currentTimeMillis() - reading.timestamp >= TIMEOUT) {
                             removeReadings.add(reading);
                         }
                     }
 
+                    // Remove all of the readings from this BSSID if it's in the new set
                     bssid.getReadings().removeAll(removeReadings);
 
 
 
-                }
-
-
-
-                // remove this access point because it has no current readings
-                boolean remove = false;
-                for (BSSID bssid : ap.bssids.values()){
-                    if(bssid.getReadings().isEmpty()){
-                        remove = true;
-                    }
                 }
 
             }

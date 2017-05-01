@@ -116,6 +116,8 @@ public class CalibrateActivity extends Activity{
         }
     };
 
+    // For all of these collect the most recent 10 values of pressure and set it to that index of the arrayList
+
     private View.OnClickListener oneListener = new View.OnClickListener() {
         @Override
         public void onClick(View view) {
