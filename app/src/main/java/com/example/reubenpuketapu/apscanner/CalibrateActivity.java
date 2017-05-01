@@ -11,6 +11,7 @@ import android.hardware.SensorManager;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Button;
+import android.widget.EditText;
 import android.widget.TextView;
 
 import java.util.ArrayList;
@@ -29,6 +30,7 @@ public class CalibrateActivity extends Activity{
     private Button button5;
     private Button done;
     private TextView text;
+    private EditText manual;
 
     private SensorManager sensorManager;
     private Sensor pressSensor;
@@ -69,6 +71,7 @@ public class CalibrateActivity extends Activity{
         });
 
         text = (TextView) findViewById(R.id.calibrateText);
+        manual = (EditText) findViewById(R.id.editText);
 
         averageValues.add("");
         averageValues.add("");
@@ -130,7 +133,12 @@ public class CalibrateActivity extends Activity{
                 average+= list.get(i);
             }
             average /= list.size();
-            averageValues.set(0, average.toString());
+
+            if (manual.getText().length() != 0){
+                averageValues.set(0, manual.getText().toString());
+            }else{
+                averageValues.set(0, average.toString());
+            }
 
             System.out.println("value: " + averageValues.get(0));
             System.out.println("cvalue: " + currentValue);
@@ -150,7 +158,12 @@ public class CalibrateActivity extends Activity{
                 average+= list.get(i);
             }
             average /= list.size();
-            averageValues.set(1, average.toString());
+
+            if (manual.getText().length() != 0){
+                averageValues.set(1, manual.getText().toString());
+            }else{
+                averageValues.set(1, average.toString());
+            }
 
             System.out.println("value: " + averageValues.get(1));
             System.out.println("cvalue: " + currentValue);
@@ -170,7 +183,12 @@ public class CalibrateActivity extends Activity{
                 average+= list.get(i);
             }
             average /= list.size();
-            averageValues.set(2, average.toString());
+
+            if (manual.getText().length() != 0){
+                averageValues.set(2, manual.getText().toString());
+            }else{
+                averageValues.set(2, average.toString());
+            }
 
             System.out.println("value: " + averageValues.get(2));
             System.out.println("cvalue: " + currentValue);
@@ -190,7 +208,12 @@ public class CalibrateActivity extends Activity{
                 average+= list.get(i);
             }
             average /= list.size();
-            averageValues.set(3, average.toString());
+
+            if (manual.getText().length() != 0){
+                averageValues.set(3, manual.getText().toString());
+            }else{
+                averageValues.set(3, average.toString());
+            }
 
             System.out.println("value: " + averageValues.get(3));
             System.out.println("cvalue: " + currentValue);
@@ -210,7 +233,12 @@ public class CalibrateActivity extends Activity{
                 average+= list.get(i);
             }
             average /= list.size();
-            averageValues.set(4, average.toString());
+
+            if (manual.getText().length() != 0){
+                averageValues.set(4, manual.getText().toString());
+            }else{
+                averageValues.set(4, average.toString());
+            }
 
             System.out.println("value: " + averageValues.get(4));
             System.out.println("cvalue: " + currentValue);
