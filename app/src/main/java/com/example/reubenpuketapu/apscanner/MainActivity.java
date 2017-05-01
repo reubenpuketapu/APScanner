@@ -30,6 +30,7 @@ import com.example.reubenpuketapu.apscanner.wrappers.BSSID;
 import com.example.reubenpuketapu.apscanner.wrappers.Location;
 import com.example.reubenpuketapu.apscanner.wrappers.Reading;
 
+import org.apache.commons.math3.exception.NullArgumentException;
 import org.apache.commons.math3.exception.TooManyEvaluationsException;
 import org.apache.commons.math3.fitting.leastsquares.LeastSquaresOptimizer;
 import org.apache.commons.math3.fitting.leastsquares.LevenbergMarquardtOptimizer;
@@ -89,7 +90,7 @@ public class MainActivity extends AppCompatActivity {
 
     // x y location in metres
     private Location wifiLocation = new Location(30, 30, 2);
-    private Location stepLocation = new Location(0, 0, 2);
+    private Location stepLocation = new Location(0, 0, 0);
 
     // dx dy in metres
     private double dx;
@@ -226,11 +227,10 @@ public class MainActivity extends AppCompatActivity {
 
         @Override
         public void onSensorChanged(SensorEvent event) {
-
-            stepLocation.x += dx;
-            stepLocation.y -= dy;
-
-            drawLocation();
+            if (stepLocation.x > 0.0 || stepLocation.y  >0.0) {
+                stepLocation.x += dx;
+                stepLocation.y -= dy;
+            }
 
         }
 
@@ -247,18 +247,19 @@ public class MainActivity extends AppCompatActivity {
 
             double diff = 100000;
             int index = 0;
-            //for (int i = 0; i < db.calibrationValues.size(); i ++){
+            try {
+                for (int i = 0; i < db.calibrationValues.size(); i++) {
 
-                //if (Math.abs(pressure - db.calibrationValues.get(i)) < diff){
-                //    //diff = Math.abs(pressure - db.calibrationValues.get(i) );
-                //    index = i;
-                //}
-            //}
-
-            //wifiLocation.z = index+1;
-            //stepLocation.z = index+1;
-
-            dist.setText(event.values[0]+ " \n");
+                    if (Math.abs(pressure - db.calibrationValues.get(i)) < diff) {
+                        diff = Math.abs(pressure - db.calibrationValues.get(i) );
+                        index = i;
+                    }
+                }
+                stepLocation.z = index + 1;
+            }
+            catch (NullPointerException e){
+                stepLocation.z = -1;
+            }
 
         }
 
@@ -292,16 +293,31 @@ public class MainActivity extends AppCompatActivity {
 
     public void drawLocation() {
 
-        if (wifiLocation.z == 1.0) {
+        double x;
+        double y;
+        double z;
+
+        if(stepLocation.x <= 0.0 || stepLocation.y <=0.0 || stepLocation.z <=0.0){
+            x = wifiLocation.x;
+            y = wifiLocation.y;
+            z = (int) Math.round((wifiLocation.z));
+        }
+        else{
+            x = (wifiLocation.z + stepLocation.z)/2;
+            y = (wifiLocation.z + stepLocation.z)/2;
+            z = (int) Math.round((wifiLocation.z + stepLocation.z)/2);
+        }
+
+        if (z <  5.5) {
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.one, null));
-        } else if (wifiLocation.z == 3.0) {
-            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
-        } else if (wifiLocation.z == 4.0) {
-            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
-        } else if (wifiLocation.z == 5.0) {
-            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.five, null));
-        } else {
+        } else if (z < 10.5){
             ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.two, null));
+        } else if (z < 15.5) {
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.three, null));
+        } else if (z < 20.5) {
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.four, null));
+        } else  {
+            ivBackground.setImageDrawable(getResources().getDrawable(R.drawable.five, null));
         }
 
         bitmap = Bitmap.createBitmap(ivBackground.getWidth(), ivBackground.getHeight(), Bitmap.Config.ARGB_8888);
@@ -338,11 +354,12 @@ public class MainActivity extends AppCompatActivity {
         paint.setColor(Color.RED);
 
         // draw the circle with 117.5 x-y scale ratio
-        canvas.drawCircle((float) (((wifiLocation.x+stepLocation.x)/2) * DRAW_RATIO), (float) (((wifiLocation.y+stepLocation.y)/2) * DRAW_RATIO), 10, paint);
+        canvas.drawCircle((float) (x * DRAW_RATIO), (float) (y * DRAW_RATIO), 10, paint);
 
-        //paint.setColor(Color.BLUE);
-        //canvas.drawCircle((float) (stepLocation.x * DRAW_RATIO), (float) (stepLocation.y * DRAW_RATIO), 10, paint);
+        paint.setColor(Color.BLUE);
+        canvas.drawCircle((float) (stepLocation.x * DRAW_RATIO), (float) (stepLocation.y * DRAW_RATIO), 10, paint);
 
+        dist.setText("x: " + x + " y: " + y + " z: " + z);
 
         ivOverlay.setImageBitmap(bitmap);
 
@@ -392,7 +409,7 @@ public class MainActivity extends AppCompatActivity {
                         Location tempLocation = calculateWifiLocation();
                         wifiLocation.x = tempLocation.x;
                         wifiLocation.y = tempLocation.y;
-                        wifiLocation.z = (int) Math.round(tempLocation.z);
+                        wifiLocation.z = tempLocation.z;
 
                         drawLocation();
                     }
@@ -428,7 +445,14 @@ public class MainActivity extends AppCompatActivity {
                 positions[i][1] = ap.getY();
                 positions[i][2] = ap.getZ();
 
+                for (BSSID bssid: ap.bssids.values()){
+                    System.out.println("bssid: " + bssid.getBssid() + " readings: " + bssid.getIntReadings());
+                }
+
+                System.out.println("distance: " + ap.averageDistance + "x: " );
             }
+
+            System.out.println("--------------------");
 
             NonLinearLeastSquaresSolver solver = new NonLinearLeastSquaresSolver(new TrilaterationFunction(positions, distances), new LevenbergMarquardtOptimizer());
             LeastSquaresOptimizer.Optimum optimum = solver.solve();
@@ -436,7 +460,7 @@ public class MainActivity extends AppCompatActivity {
             // the answer
             double[] centroid = optimum.getPoint().toArray();
 
-            return new Location(centroid[0], centroid[1], wifiLocation.z);
+            return new Location(centroid[0], centroid[1], centroid[2]);
         }
         catch (TooManyEvaluationsException e){
 
@@ -531,6 +555,8 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     bssid.getReadings().removeAll(removeReadings);
+
+
 
                 }
 
